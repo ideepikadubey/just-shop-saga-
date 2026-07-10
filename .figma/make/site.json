@@ -1,0 +1,10 @@
+{
+  "description": "Just Shop Saga offers a premium online shopping experience with a vibrant pink, blue, and white theme, designed for users seeking stylish products.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

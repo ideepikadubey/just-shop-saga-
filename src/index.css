@@ -1,0 +1,34 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+@import 'tailwindcss';
+
+:root {
+  --navy: #1D1148;
+  --pink: #F43F8B;
+  --pink-light: #FDE8F3;
+  --pink-mid: #FAC8E4;
+  --bg: #F7F2F8;
+  --white: #FFFFFF;
+  --text-dark: #1D1148;
+  --text-mid: #6B5E82;
+  --text-light: #B8A8C8;
+  --border: #EDE0F0;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg);
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-dark);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, .font-premium-heading {
+  font-family: 'Cinzel', serif !important;
+}
+
+::-webkit-scrollbar { width: 0; height: 0; }
+* { scrollbar-width: none; }
