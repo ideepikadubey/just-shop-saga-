@@ -1156,34 +1156,34 @@ export default function App() {
 
   const renderLandingScreen = () => {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-slate-50 via-pink-50/20 to-slate-100 relative overflow-hidden">
         {/* Glow behind */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-pink-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-pink-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="max-w-4xl w-full text-center space-y-6 z-10 my-auto">
           {/* Badge */}
-          <div className="inline-flex items-center space-x-2 bg-pink-500/10 border border-pink-500/20 px-3.5 py-1.5 rounded-full text-pink-400 text-xs font-bold uppercase tracking-wider animate-pulse">
+          <div className="inline-flex items-center space-x-2 bg-pink-50 border border-pink-100 px-3.5 py-1.5 rounded-full text-pink-600 text-xs font-bold uppercase tracking-wider">
             <Sparkles className="h-3.5 w-3.5" />
             <span>Official Saga Creator</span>
           </div>
 
           {/* Big Hero Title */}
-          <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none bg-gradient-to-r from-white via-slate-100 to-pink-200 bg-clip-text text-transparent">
+          <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none bg-gradient-to-r from-slate-900 via-slate-800 to-pink-600 bg-clip-text text-transparent">
             Saga Diamond Painting
           </h1>
-          <p className="text-sm sm:text-base text-slate-400 max-w-xl mx-auto leading-relaxed">
+          <p className="text-sm sm:text-base text-slate-600 max-w-xl mx-auto leading-relaxed">
             Instantly turn your favorite photos into a personalized diamond grid guide. Upload any picture and get custom pixel instructions.
           </p>
 
           {/* Action card */}
           <div className="pt-6 max-w-md mx-auto w-full">
-            <div className="bg-slate-900/40 border border-slate-900 hover:border-pink-500/20 rounded-3xl p-8 backdrop-blur-md transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/5 flex flex-col items-center space-y-5 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-pink-500/10 flex items-center justify-center border border-pink-500/15 text-pink-400">
+            <div className="bg-white border border-slate-200/80 hover:border-pink-500/30 rounded-3xl p-8 backdrop-blur-md transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/5 flex flex-col items-center space-y-5 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-pink-50 flex items-center justify-center border border-pink-100 text-pink-600">
                 <Sparkles className="h-7 w-7" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-slate-100">Create Your Diamond Art</h3>
-                <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                <h3 className="text-xl font-bold text-slate-900">Create Your Diamond Art</h3>
+                <p className="text-xs text-slate-500 mt-2 leading-relaxed">
                   Upload a photo from your library and see what your diamond painting will look like. Adjust composition and preview filters instantly!
                 </p>
               </div>
@@ -1194,7 +1194,7 @@ export default function App() {
                   setPattern(null);
                   setActiveScreen('select-kit');
                 }}
-                className="w-full py-3.5 rounded-full bg-pink-600 hover:bg-pink-500 text-white font-extrabold text-xs tracking-wider uppercase shadow-lg shadow-pink-500/10 transition active:scale-[0.98] cursor-pointer text-center font-bold"
+                className="w-full py-3.5 rounded-full bg-pink-600 hover:bg-pink-500 text-white font-extrabold text-xs tracking-wider uppercase shadow-lg shadow-pink-500/20 transition active:scale-[0.98] cursor-pointer text-center font-bold"
               >
                 Upload Photo / View Demo
               </button>
@@ -1207,19 +1207,19 @@ export default function App() {
 
   const renderCropTipModal = () => {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
         {/* Modal Box */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6.5 max-w-md w-full shadow-2xl relative space-y-5 animate-in fade-in zoom-in duration-200">
+        <div className="bg-white border border-slate-200 rounded-3xl p-6.5 max-w-md w-full shadow-2xl relative space-y-5 animate-in fade-in zoom-in duration-200">
           
           <div className="text-center">
-            <div className="w-12 h-12 rounded-full bg-pink-500/10 border border-pink-500/20 text-pink-400 flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 rounded-full bg-pink-50 border border-pink-100 text-pink-600 flex items-center justify-center mx-auto mb-3">
               <Sparkles className="h-6 w-6" />
             </div>
-            <h3 className="text-lg font-black text-white">Tips for the best result</h3>
+            <h3 className="text-lg font-black text-slate-900">Tips for the best result</h3>
           </div>
 
           {/* Infographic Comparison Image */}
-          <div className="w-full rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center">
+          <div className="w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center">
             <img src={cropTipsImage} alt="Crop tips" className="w-full object-contain" />
           </div>
 
@@ -1239,20 +1239,20 @@ export default function App() {
 
   const renderSelectKitScreen = () => {
     return (
-      <div className="flex-1 flex flex-col bg-slate-950 p-6 sm:p-8 max-w-3xl mx-auto w-full relative justify-center">
+      <div className="flex-1 flex flex-col bg-slate-50 p-6 sm:p-8 max-w-3xl mx-auto w-full relative justify-center">
         {/* Back Button */}
         <button
           onClick={() => setActiveScreen('landing')}
-          className="inline-flex items-center space-x-1.5 text-xs font-extrabold uppercase tracking-wider text-slate-500 hover:text-white mb-6 cursor-pointer self-start transition duration-150"
+          className="inline-flex items-center space-x-1.5 text-xs font-extrabold uppercase tracking-wider text-slate-500 hover:text-slate-800 mb-6 cursor-pointer self-start transition duration-150"
         >
           <span>← Back</span>
         </button>
 
         {/* Header */}
         <div className="mb-6">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-pink-400">Step 1 of 3</span>
-          <h2 className="text-2xl font-black tracking-tight text-white mt-1">Configure & Upload</h2>
-          <p className="text-xs text-slate-400 mt-1">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-pink-500">Step 1 of 3</span>
+          <h2 className="text-2xl font-black tracking-tight text-slate-900 mt-1">Configure & Upload</h2>
+          <p className="text-xs text-slate-500 mt-1">
             Choose your diamond painting kit type, canvas dimensions, and upload your photo.
           </p>
         </div>
@@ -1260,10 +1260,10 @@ export default function App() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           {/* Left panel: Kit Configuration */}
           <div className="space-y-4">
-            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider">1. Select Art Kit</h3>
+            <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">1. Select Art Kit</h3>
             
             {/* Pack Tabs */}
-            <div className="grid grid-cols-2 p-1 bg-slate-900/80 border border-slate-850 rounded-2xl">
+            <div className="grid grid-cols-2 p-1 bg-slate-100 border border-slate-200 rounded-2xl">
               <button
                 onClick={() => {
                   setActivePackId('current');
@@ -1272,8 +1272,8 @@ export default function App() {
                 }}
                 className={`py-2 px-3 text-xs font-extrabold rounded-xl transition duration-200 cursor-pointer text-center ${
                   activePackId === 'current'
-                    ? 'bg-pink-600 text-white shadow-lg'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-pink-600 text-white shadow-md'
+                    : 'text-slate-600 hover:text-slate-800'
                 }`}
               >
                 Current Pack
@@ -1286,8 +1286,8 @@ export default function App() {
                 }}
                 className={`py-2 px-3 text-xs font-extrabold rounded-xl transition duration-200 cursor-pointer text-center ${
                   activePackId === 'upcoming'
-                    ? 'bg-pink-600 text-white shadow-lg'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-pink-600 text-white shadow-md'
+                    : 'text-slate-600 hover:text-slate-800'
                 }`}
               >
                 Upcoming Pack
@@ -1304,32 +1304,32 @@ export default function App() {
                     onClick={() => setSelectedKit(kit)}
                     className={`w-full text-left p-3.5 rounded-2xl border transition duration-200 relative group flex items-start space-x-3.5 cursor-pointer ${
                       isSelected 
-                        ? 'bg-slate-900 border-pink-500 shadow-lg' 
-                        : 'bg-slate-900/30 border-slate-905 hover:border-slate-800 hover:bg-slate-900/50'
+                        ? 'bg-white border-pink-500 shadow-md' 
+                        : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                     }`}
                   >
                     <div className={`mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
-                      isSelected ? 'bg-pink-500 text-white' : 'bg-slate-800 text-slate-400 group-hover:text-slate-200'
+                      isSelected ? 'bg-pink-500 text-white' : 'bg-slate-100 text-slate-600 group-hover:text-slate-800'
                     }`}>
                       ■
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-sm text-slate-200 truncate">{kit.name}</span>
-                        <span className="font-mono text-[10px] font-bold text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md shrink-0">
+                        <span className="font-bold text-sm text-slate-800 truncate">{kit.name}</span>
+                        <span className="font-mono text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md shrink-0">
                           {kit.widthCm}x{kit.heightCm} cm
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-1 leading-normal">{kit.description}</p>
-                      <div className="flex items-center space-x-2 mt-2 text-[9px] font-bold text-slate-500 flex-wrap gap-y-1">
+                      <p className="text-[10px] text-slate-500 mt-1 leading-normal">{kit.description}</p>
+                      <div className="flex items-center space-x-2 mt-2 text-[9px] font-bold text-slate-600 flex-wrap gap-y-1">
                         <span>Grid: {kit.gridWidth} x {kit.gridHeight}</span>
                         <span>•</span>
-                        <span className="text-pink-400">{(kit.gridWidth * kit.gridHeight).toLocaleString()} drills</span>
+                        <span className="text-pink-600">{(kit.gridWidth * kit.gridHeight).toLocaleString()} drills</span>
                         <span>•</span>
                         <span>{kit.diamondSizeMm} mm</span>
                         <span>•</span>
-                        <span className="text-emerald-400">Pack: {
+                        <span className="text-emerald-600">Pack: {
                           kit.gridWidth === 107 && kit.gridHeight === 143 ? '16,000' :
                           kit.gridWidth === 143 && kit.gridHeight === 179 ? '26,500' :
                           kit.gridWidth === 75 && kit.gridHeight === 100 ? '7,800' :
@@ -1346,7 +1346,7 @@ export default function App() {
 
           {/* Right panel: Upload Picture */}
           <div className="space-y-4">
-            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider">2. Upload Your Image</h3>
+            <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">2. Upload Your Image</h3>
             
             <input
               type="file"
@@ -1358,11 +1358,11 @@ export default function App() {
 
             <button
               onClick={() => setShowCropTip(true)}
-              className="w-full border-2 border-dashed border-slate-900 hover:border-pink-500/50 rounded-3xl p-8 text-center bg-slate-900/10 transition cursor-pointer relative group flex flex-col items-center justify-center min-h-[220px]"
+              className="w-full border-2 border-dashed border-slate-200 hover:border-pink-500/50 rounded-3xl p-8 text-center bg-slate-100/50 transition cursor-pointer relative group flex flex-col items-center justify-center min-h-[220px]"
             >
-              <Upload className="h-10 w-10 text-slate-500 group-hover:text-pink-400 transition mb-3" />
-              <span className="text-sm font-bold text-slate-200 block mb-1">Click to select photo</span>
-              <span className="text-[10px] text-slate-500 max-w-[200px] leading-normal mx-auto">
+              <Upload className="h-10 w-10 text-slate-500 group-hover:text-pink-500 transition mb-3" />
+              <span className="text-sm font-bold text-slate-800 block mb-1">Click to select photo</span>
+              <span className="text-[10px] text-slate-600 max-w-[200px] leading-normal mx-auto">
                 Supports PNG, JPG, WEBP formats up to 15MB file size
               </span>
             </button>
@@ -1377,7 +1377,7 @@ export default function App() {
 
   const renderCropScreen = () => {
     return (
-      <div className="flex-1 w-full h-full flex flex-col items-center justify-between p-6 bg-slate-950 text-white relative">
+      <div className="flex-1 w-full h-full flex flex-col items-center justify-between p-6 bg-slate-50 text-slate-900 relative">
         {/* Hidden File Input for "Change Photo" */}
         <input
           type="file"
@@ -1389,15 +1389,15 @@ export default function App() {
 
         {/* Progress indicator */}
         <div className="w-full text-center mt-2">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-pink-400">Step 2 of 3</span>
-          <h2 className="text-2xl font-black tracking-tight text-white mt-1">Select the desired area</h2>
-          <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto leading-normal">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-pink-500">Step 2 of 3</span>
+          <h2 className="text-2xl font-black tracking-tight text-slate-900 mt-1">Select the desired area</h2>
+          <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto leading-normal">
             Drag the photo to pan • Scroll or use buttons below to zoom
           </p>
         </div>
 
         {/* Canvas Workspace container */}
-        <div className="flex-1 w-full max-h-[460px] my-6 flex items-center justify-center relative bg-slate-900/25 border border-slate-900 rounded-3xl overflow-hidden shadow-inner">
+        <div className="flex-1 w-full max-h-[460px] my-6 flex items-center justify-center relative bg-slate-100/50 border border-slate-200 rounded-3xl overflow-hidden shadow-inner">
           <canvas
             ref={cropCanvasRef}
             onMouseDown={handleCropMouseDown}
@@ -1416,7 +1416,7 @@ export default function App() {
           {/* Change Photo */}
           <button
             onClick={() => hiddenFileInputRef.current?.click()}
-            className="w-12 h-12 rounded-full bg-white hover:bg-slate-100 text-slate-950 flex items-center justify-center shadow-lg transition active:scale-95 cursor-pointer shrink-0"
+            className="w-12 h-12 rounded-full bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 flex items-center justify-center shadow-md transition active:scale-95 cursor-pointer shrink-0"
             title="Upload New Photo"
           >
             <Upload className="h-5 w-5" />
@@ -1424,7 +1424,7 @@ export default function App() {
           {/* Zoom Out */}
           <button
             onClick={() => setCropZoom(prev => Math.max(0.1, prev - 0.1))}
-            className="w-12 h-12 rounded-full bg-white hover:bg-slate-100 text-slate-950 flex items-center justify-center shadow-lg transition active:scale-95 cursor-pointer shrink-0 animate-none"
+            className="w-12 h-12 rounded-full bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 flex items-center justify-center shadow-md transition active:scale-95 cursor-pointer shrink-0 animate-none"
             title="Zoom Out"
           >
             <ZoomOut className="h-5 w-5" />
@@ -1432,7 +1432,7 @@ export default function App() {
           {/* Rotate */}
           <button
             onClick={() => setCropRotation(prev => (prev + 90) % 360)}
-            className="w-12 h-12 rounded-full bg-white hover:bg-slate-100 text-slate-950 flex items-center justify-center shadow-lg transition active:scale-95 cursor-pointer shrink-0"
+            className="w-12 h-12 rounded-full bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 flex items-center justify-center shadow-md transition active:scale-95 cursor-pointer shrink-0"
             title="Rotate 90°"
           >
             <RefreshCw className="h-5 w-5" />
@@ -1440,7 +1440,7 @@ export default function App() {
           {/* Zoom In */}
           <button
             onClick={() => setCropZoom(prev => Math.min(15, prev + 0.1))}
-            className="w-12 h-12 rounded-full bg-white hover:bg-slate-100 text-slate-950 flex items-center justify-center shadow-lg transition active:scale-95 cursor-pointer shrink-0 animate-none"
+            className="w-12 h-12 rounded-full bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 flex items-center justify-center shadow-md transition active:scale-95 cursor-pointer shrink-0 animate-none"
             title="Zoom In"
           >
             <ZoomIn className="h-5 w-5" />
@@ -1453,13 +1453,13 @@ export default function App() {
             onClick={() => {
               setActiveScreen('select-kit');
             }}
-            className="flex-1 py-3.5 px-6 rounded-full bg-slate-900 border border-slate-800 text-white font-extrabold text-xs tracking-wider uppercase hover:bg-slate-850 active:scale-95 transition cursor-pointer text-center font-bold"
+            className="flex-1 py-3.5 px-6 rounded-full bg-slate-100 border border-slate-200 text-slate-700 font-extrabold text-xs tracking-wider uppercase hover:bg-slate-200 active:scale-95 transition cursor-pointer text-center font-bold"
           >
             Back
           </button>
           <button
             onClick={applyCrop}
-            className="flex-1 py-3.5 px-6 rounded-full bg-white text-slate-950 font-extrabold text-xs tracking-wider uppercase hover:bg-slate-100 active:scale-95 transition cursor-pointer text-center font-bold"
+            className="flex-1 py-3.5 px-6 rounded-full bg-pink-600 text-white font-extrabold text-xs tracking-wider uppercase hover:bg-pink-500 active:scale-95 transition cursor-pointer text-center font-bold"
           >
             Next
           </button>
@@ -1505,7 +1505,7 @@ export default function App() {
         const cellW = canvas.width / previewWidth;
         const cellH = canvas.height / previewHeight;
 
-        ctx.fillStyle = '#090d16';
+        ctx.fillStyle = '#f8fafc';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         result.pixels.forEach(p => {
@@ -1528,27 +1528,27 @@ export default function App() {
     }, [croppedImage, filterId, allowedColors]);
 
     return (
-      <canvas ref={canvasRef} className="rounded-xl border border-slate-850 w-[180px] h-[120px] shadow-inner bg-slate-950" />
+      <canvas ref={canvasRef} className="rounded-xl border border-slate-200 w-[180px] h-[120px] shadow-inner bg-slate-50" />
     );
   };
 
   const renderChooseStyleScreen = () => {
     return (
-      <div className="flex-1 w-full bg-slate-950 p-6 overflow-y-auto">
+      <div className="flex-1 w-full bg-slate-50 p-6 overflow-y-auto">
         <div className="max-w-6xl mx-auto space-y-8">
           
           {/* Header */}
-          <div className="border-b border-slate-900 pb-6">
+          <div className="border-b border-slate-200 pb-6">
             <button
               onClick={() => setActiveScreen('crop')}
-              className="inline-flex items-center space-x-2 text-xs font-bold text-slate-400 hover:text-white cursor-pointer mb-2"
+              className="inline-flex items-center space-x-2 text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer mb-2"
             >
               <span>← Back to Crop</span>
             </button>
-            <h2 className="text-2xl font-black bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent uppercase tracking-tight">
+            <h2 className="text-2xl font-black bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent uppercase tracking-tight">
               JUST SHOP SAGA – 3 ART STYLE PREVIEW
             </h2>
-            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">
               SAME PHOTO – 3 DIFFERENT STYLES | CHOOSE YOUR FAVOURITE
             </p>
           </div>
@@ -1559,32 +1559,32 @@ export default function App() {
               const previewSrc = filterPreviews[preset.id];
               const allowedDMC = DMC_COLORS.filter(c => preset.allowedColors.includes(c.code));
               return (
-                <div key={preset.id} className="bg-slate-900/30 border border-slate-900 rounded-3xl p-5 space-y-4 hover:border-slate-800 transition duration-200">
+                <div key={preset.id} className="bg-white border border-slate-200 rounded-3xl p-5 space-y-4 hover:border-slate-350 hover:shadow-md transition duration-200">
                   
                   {/* Card Header */}
                   <div className="text-center space-y-1">
-                    <span className="text-xs font-black text-pink-400 uppercase tracking-widest">
+                    <span className="text-xs font-black text-pink-600 uppercase tracking-widest">
                       {idx + 1}. {preset.name}
                     </span>
-                    <h3 className="text-[10px] font-bold text-slate-400 leading-normal">
+                    <h3 className="text-[10px] font-bold text-slate-500 leading-normal">
                       {preset.subtitle}
                     </h3>
                   </div>
 
                   {/* Previews Frame */}
-                  <div className="flex flex-col items-center space-y-3 bg-slate-950/80 p-4 rounded-2xl border border-slate-850">
+                  <div className="flex flex-col items-center space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
                     {/* Processed photo */}
-                    <div className="w-full aspect-[4/3] rounded-xl overflow-hidden bg-slate-900 border border-slate-800 flex items-center justify-center relative">
+                    <div className="w-full aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center relative">
                       {previewSrc ? (
                         <img src={previewSrc} alt={preset.name} className="w-full h-full object-cover" />
                       ) : (
-                        <RefreshCw className="h-6 w-6 text-slate-700 animate-spin" />
+                        <RefreshCw className="h-6 w-6 text-slate-400 animate-spin" />
                       )}
                     </div>
 
                     {/* Small guide preview canvas */}
-                    <div className="flex flex-col items-center space-y-1 w-full pt-1.5 border-t border-slate-900/60">
-                      <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider">
+                    <div className="flex flex-col items-center space-y-1 w-full pt-1.5 border-t border-slate-200">
+                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">
                         Diamond Guide Preview (Zoom)
                       </span>
                       <MiniGridPreview filterId={preset.id} allowedColors={preset.allowedColors} />
@@ -1593,20 +1593,20 @@ export default function App() {
 
                   {/* Colors List */}
                   <div className="space-y-2">
-                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider block text-center">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block text-center">
                       Colors Used in this Style ({preset.allowedColors.length} Colors)
                     </span>
                     <div className="flex flex-wrap items-center justify-center gap-1.5">
                       {allowedDMC.map((c, sIdx) => {
                         const symbol = VISUAL_SYMBOLS[sIdx % VISUAL_SYMBOLS.length] || '•';
                         return (
-                          <div key={c.code} className="flex flex-col items-center bg-slate-900/80 border border-slate-850/50 p-1.5 rounded-xl min-w-[42px] shrink-0 text-center">
-                            <div className="w-4 h-4 rounded border border-slate-800 shadow-inner flex items-center justify-center" style={{ backgroundColor: c.hex }}>
+                          <div key={c.code} className="flex flex-col items-center bg-slate-50 border border-slate-200 p-1.5 rounded-xl min-w-[42px] shrink-0 text-center">
+                            <div className="w-4 h-4 rounded border border-slate-200 shadow-inner flex items-center justify-center" style={{ backgroundColor: c.hex }}>
                               <span className="text-[8px] font-black text-slate-950 font-sans" style={{ color: (c.r*0.299+c.g*0.587+c.b*0.114)>128 ? '#000000':'#ffffff' }}>
                                 {symbol}
                               </span>
                             </div>
-                            <span className="text-[8px] font-black text-slate-200 mt-1">DMC {c.code}</span>
+                            <span className="text-[8px] font-black text-slate-800 mt-1">DMC {c.code}</span>
                             <span className="text-[6px] text-slate-500 font-bold truncate max-w-[40px]">{c.name}</span>
                           </div>
                         );
@@ -1615,9 +1615,9 @@ export default function App() {
                   </div>
 
                   {/* Best For Info */}
-                  <div className="text-[10px] text-slate-400 text-center leading-normal pt-2 border-t border-slate-900/60">
-                    <span className="text-slate-500 font-bold">Best For: </span>
-                    <span className="text-slate-300 font-semibold">{preset.bestFor}</span>
+                  <div className="text-[10px] text-slate-500 text-center leading-normal pt-2 border-t border-slate-200">
+                    <span className="text-slate-400 font-bold">Best For: </span>
+                    <span className="text-slate-700 font-semibold">{preset.bestFor}</span>
                   </div>
 
                   {/* Action Select Button */}
@@ -1627,7 +1627,7 @@ export default function App() {
                       hasAutoZoomedRef.current = false;
                       setActiveScreen('grid-viewer');
                     }}
-                    className="w-full py-3 rounded-2xl bg-white hover:bg-slate-100 text-slate-950 font-black text-xs uppercase tracking-wider transition duration-150 cursor-pointer active:scale-95 shadow-md shadow-white/5"
+                    className="w-full py-3 rounded-2xl bg-pink-600 hover:bg-pink-500 text-white font-black text-xs uppercase tracking-wider transition duration-150 cursor-pointer active:scale-95 shadow-md shadow-pink-600/10"
                   >
                     Select this Style
                   </button>
@@ -1643,35 +1643,35 @@ export default function App() {
 
   const renderGridViewerScreen = () => {
     return (
-      <div className="flex-1 flex flex-col-reverse lg:flex-row overflow-y-auto lg:overflow-hidden">
+      <div className="flex-1 flex flex-col-reverse lg:flex-row overflow-y-auto lg:overflow-hidden bg-slate-50">
         
         {/* LEFT COLUMN: SETTINGS PANEL */}
-        <div className="w-full lg:w-[420px] bg-slate-950 border-t lg:border-t-0 lg:border-r border-slate-900 overflow-visible lg:overflow-y-auto p-6 space-y-8 shrink-0 flex flex-col">
+        <div className="w-full lg:w-[420px] bg-slate-50 border-t lg:border-t-0 lg:border-r border-slate-200 overflow-visible lg:overflow-y-auto p-6 space-y-8 shrink-0 flex flex-col">
           
           <button
             onClick={() => setActiveScreen('choose-style')}
-            className="inline-flex items-center space-x-1.5 text-xs font-extrabold uppercase tracking-wider text-slate-500 hover:text-white cursor-pointer transition duration-150 self-start"
+            className="inline-flex items-center space-x-1.5 text-xs font-extrabold uppercase tracking-wider text-slate-500 hover:text-slate-800 cursor-pointer transition duration-150 self-start"
           >
             <span>← Back to Style Selection</span>
           </button>
 
           {/* STEP 1: READ-ONLY SELECTION DETAILS */}
-          <div className="space-y-3.5 bg-slate-900/40 border border-slate-900 p-4 rounded-2xl">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-pink-400">Canvas Configuration</span>
+          <div className="space-y-3.5 bg-white border border-slate-200 p-4 rounded-2xl">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-pink-500">Canvas Configuration</span>
             <div className="flex items-center justify-between">
-              <span className="font-bold text-sm text-slate-200">{selectedKit.name}</span>
-              <span className="font-mono text-xs font-semibold text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md">
+              <span className="font-bold text-sm text-slate-800">{selectedKit.name}</span>
+              <span className="font-mono text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
                 {selectedKit.widthCm}x{selectedKit.heightCm} cm
               </span>
             </div>
             <div className="flex items-center space-x-2 text-[10px] font-bold text-slate-500 mt-1 flex-wrap gap-y-1">
               <span>Grid: {selectedKit.gridWidth} x {selectedKit.gridHeight}</span>
               <span>•</span>
-              <span className="text-pink-400">{(selectedKit.gridWidth * selectedKit.gridHeight).toLocaleString()} drills</span>
+              <span className="text-pink-600">{(selectedKit.gridWidth * selectedKit.gridHeight).toLocaleString()} drills</span>
               <span>•</span>
               <span>{selectedKit.diamondSizeMm}mm {selectedKit.shape}</span>
               <span>•</span>
-              <span className="text-emerald-400">Pack: {
+              <span className="text-emerald-600">Pack: {
                 selectedKit.gridWidth === 107 && selectedKit.gridHeight === 143 ? '16,000' :
                 selectedKit.gridWidth === 143 && selectedKit.gridHeight === 179 ? '26,500' :
                 selectedKit.gridWidth === 75 && selectedKit.gridHeight === 100 ? '7,800' :
@@ -1681,18 +1681,16 @@ export default function App() {
             </div>
             <button
               onClick={() => setActiveScreen('select-kit')}
-              className="text-[9px] font-extrabold text-pink-400 hover:text-pink-300 uppercase tracking-wider block mt-2 cursor-pointer"
+              className="text-[9px] font-extrabold text-pink-500 hover:text-pink-600 uppercase tracking-wider block mt-2 cursor-pointer"
             >
               Change Canvas Details →
             </button>
           </div>
 
-
-
           {/* ACTIVE STYLE INFORMATION */}
-          <div className="space-y-4 border-t border-slate-900 pt-6">
+          <div className="space-y-4 border-t border-slate-200 pt-6">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-pink-400">Selected Style</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-pink-500">Selected Style</span>
               <span className="text-xs text-slate-500 font-medium">Style Details</span>
             </div>
 
@@ -1701,22 +1699,22 @@ export default function App() {
               const currentPreset = getFilterPresets().find(f => f.id === activeFilter);
               if (!currentPreset) return null;
               return (
-                <div className="bg-slate-900/30 border border-slate-900/80 p-3.5 rounded-2xl space-y-2 mt-2">
+                <div className="bg-white border border-slate-200 p-3.5 rounded-2xl space-y-2 mt-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Selected Style Details</span>
-                    <span className="text-[9px] text-pink-400 font-mono font-bold bg-pink-500/5 px-2 py-0.5 rounded border border-pink-500/10">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Selected Style Details</span>
+                    <span className="text-[9px] text-pink-600 font-mono font-bold bg-pink-50 px-2 py-0.5 rounded border border-pink-100">
                       {currentPreset.allowedColors.length} Colors
                     </span>
                   </div>
-                  <div className="text-[11px] font-bold text-slate-300 leading-tight">
+                  <div className="text-[11px] font-bold text-slate-800 leading-tight">
                     {currentPreset.subtitle}
                   </div>
-                  <p className="text-[10px] text-slate-400 leading-relaxed">
+                  <p className="text-[10px] text-slate-600 leading-relaxed">
                     {currentPreset.description}
                   </p>
-                  <div className="text-[10px] leading-normal pt-1.5 border-t border-slate-900/80">
+                  <div className="text-[10px] leading-normal pt-1.5 border-t border-slate-200">
                     <span className="text-slate-500 font-bold">Best For: </span>
-                    <span className="text-slate-300 font-semibold">{currentPreset.bestFor}</span>
+                    <span className="text-slate-700 font-semibold">{currentPreset.bestFor}</span>
                   </div>
                 </div>
               );
@@ -1724,14 +1722,14 @@ export default function App() {
           </div>
 
           {/* DOWNLOAD & INSTRUCTIONS BUTTON */}
-          <div className="space-y-3.5 border-t border-slate-900 pt-6">
+          <div className="space-y-3.5 border-t border-slate-200 pt-6">
             <button
               onClick={triggerPDFExport}
               disabled={!pattern}
               className={`w-full py-4 rounded-2xl font-extrabold text-xs flex items-center justify-center space-x-2 shadow-xl transition-all duration-200 ${
                 pattern 
                   ? 'bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white shadow-pink-500/10 hover:shadow-pink-500/20 active:scale-[0.98] cursor-pointer' 
-                  : 'bg-slate-900 border border-slate-850 text-slate-500 cursor-not-allowed'
+                  : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'
               }`}
             >
               <Download className="h-4.5 w-4.5" />
@@ -1742,20 +1740,16 @@ export default function App() {
         </div>
 
         {/* RIGHT COLUMN: PREVIEW WORKSPACE */}
-        <div className="flex-1 bg-slate-950 flex flex-col relative overflow-visible lg:overflow-hidden">
+        <div className="flex-1 bg-slate-50 flex flex-col relative overflow-visible lg:overflow-hidden">
           
-
-
-
-
           {/* Canvas or Welcome states */}
-          <div className="flex-1 w-full h-full p-6 flex items-center justify-center select-none bg-slate-900/10">
-            <div className="w-full max-w-[800px] aspect-[4/3] max-h-[60vh] bg-slate-950 border border-slate-900 rounded-3xl relative overflow-hidden shadow-2xl flex items-center justify-center cursor-grab active:cursor-grabbing">
+          <div className="flex-1 w-full h-full p-6 flex items-center justify-center select-none bg-slate-100/30">
+            <div className="w-full max-w-[800px] aspect-[4/3] max-h-[60vh] bg-white border border-slate-200 rounded-3xl relative overflow-hidden shadow-md flex items-center justify-center cursor-grab active:cursor-grabbing">
               {isProcessing ? (
                 <div className="text-center p-8 flex flex-col items-center space-y-4">
                   <RefreshCw className="h-10 w-10 text-pink-500 animate-spin" />
                   <div>
-                    <h4 className="font-extrabold text-base text-slate-200">Processing Painting</h4>
+                    <h4 className="font-extrabold text-base text-slate-800">Processing Painting</h4>
                     <p className="text-xs text-slate-500 mt-1">Generating custom DMC legend guide and grid coordinates...</p>
                   </div>
                 </div>
@@ -1770,7 +1764,7 @@ export default function App() {
                   onTouchStart={handleViewerTouchStart}
                   onTouchMove={handleViewerTouchMove}
                   onTouchEnd={handleViewerTouchEnd}
-                  className="w-full h-full block bg-slate-950 touch-none"
+                  className="w-full h-full block bg-slate-50 touch-none"
                 />
               ) : null}
             </div>
@@ -1778,7 +1772,7 @@ export default function App() {
 
           {/* Color Legend Footer Strip */}
           {pattern && !isProcessing && (
-            <div className="h-28 bg-slate-950 border-t border-slate-900/80 p-4 flex items-center space-x-3.5 overflow-x-auto shrink-0 z-10">
+            <div className="h-28 bg-slate-50 border-t border-slate-200 p-4 flex items-center space-x-3.5 overflow-x-auto shrink-0 z-10">
               {pattern.palette.map(c => {
                 const isSelected = selectedColorCode === c.code;
                 return (
@@ -1787,15 +1781,15 @@ export default function App() {
                     onClick={() => setSelectedColorCode(isSelected ? null : c.code)}
                     className={`p-3 rounded-2xl border flex flex-col items-center space-y-1.5 shrink-0 transition cursor-pointer ${
                       isSelected 
-                        ? 'bg-slate-900 border-pink-500 shadow-md shadow-pink-500/5' 
-                        : 'bg-slate-900/40 border-slate-900 hover:border-slate-800 hover:bg-slate-900/60'
+                        ? 'bg-white border-pink-500 shadow-md shadow-pink-500/5' 
+                        : 'bg-white border-slate-200 hover:border-slate-350 hover:bg-slate-50'
                     }`}
                   >
                     <div className="flex items-center space-x-2">
-                      <div className="w-5 h-5 rounded border border-slate-800 shadow-inner" style={{ backgroundColor: c.hex }} />
-                      <span className="text-sm font-extrabold text-slate-200">{c.symbol}</span>
+                      <div className="w-5 h-5 rounded border border-slate-200 shadow-inner" style={{ backgroundColor: c.hex }} />
+                      <span className="text-sm font-extrabold text-slate-800">{c.symbol}</span>
                     </div>
-                    <span className="text-[10px] font-bold font-mono text-slate-400">DMC {c.code}</span>
+                    <span className="text-[10px] font-bold font-mono text-slate-600">DMC {c.code}</span>
                     <span className="text-[9px] text-slate-500 font-medium">{c.count} pcs</span>
                   </button>
                 );
@@ -1810,19 +1804,19 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white font-sans flex flex-col selection:bg-pink-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col selection:bg-pink-500 selection:text-white">
       
       {/* Sleek Gradient Header */}
-      <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-900 px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
         <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
           <div className="bg-gradient-to-tr from-pink-500 to-indigo-500 p-2 sm:p-2.5 rounded-xl shadow-lg shadow-pink-500/20 shrink-0">
             <Sparkles className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-white animate-pulse" />
           </div>
           <div className="min-w-0">
-            <h1 className="font-extrabold text-sm sm:text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-pink-300 bg-clip-text text-transparent font-premium-heading truncate">
+            <h1 className="font-extrabold text-sm sm:text-lg tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-pink-600 bg-clip-text text-transparent font-premium-heading truncate">
               Saga Diamond Art Creator
             </h1>
-            <p className="text-[8px] sm:text-[10px] text-slate-400 font-semibold uppercase tracking-wider truncate">
+            <p className="text-[8px] sm:text-[10px] text-slate-500 font-semibold uppercase tracking-wider truncate">
               Instantly turn custom photos into diamond grids
             </p>
           </div>
@@ -1832,7 +1826,7 @@ export default function App() {
           href="https://justshopsaga.shop/"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-full border border-slate-800 hover:border-pink-500/50 bg-slate-900/40 text-slate-200 hover:text-white font-extrabold text-[10px] sm:text-xs tracking-wider uppercase transition-all duration-200 active:scale-95 shadow-lg cursor-pointer shrink-0"
+          className="inline-flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-full border border-slate-200 hover:border-pink-500/50 bg-slate-100/50 text-slate-700 hover:text-slate-950 font-extrabold text-[10px] sm:text-xs tracking-wider uppercase transition-all duration-200 active:scale-95 shadow-md shadow-slate-100/50 cursor-pointer shrink-0"
         >
           <span>Visit Shop</span>
           <span className="text-[8px] sm:text-[10px] text-pink-400">→</span>
