@@ -304,12 +304,16 @@ export function quantizeImage(
 } {
   // 1. Get the palette using the selected algorithm
   let palette: DMCColor[] = [];
-  if (algorithm === 'k-means') {
-    palette = kmeansQuantize(pixels, k, allowedColors);
-  } else if (algorithm === 'median-cut') {
-    palette = medianCutQuantize(pixels, k, allowedColors);
+  if (allowedColors && allowedColors.length > 0 && allowedColors.length <= k) {
+    palette = [...allowedColors];
   } else {
-    palette = octreeQuantize(pixels, k, allowedColors);
+    if (algorithm === 'k-means') {
+      palette = kmeansQuantize(pixels, k, allowedColors);
+    } else if (algorithm === 'median-cut') {
+      palette = medianCutQuantize(pixels, k, allowedColors);
+    } else {
+      palette = octreeQuantize(pixels, k, allowedColors);
+    }
   }
 
   // Ensure palette has at least one color

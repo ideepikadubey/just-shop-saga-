@@ -37,7 +37,7 @@ const DIAMOND_ART_KITS: DiamondArtKit[] = [
     maxColors: 6,
     diamondSizeMm: 4.0,
     description: 'Canvas center crops image. Uses 6 standard colors.',
-    allowedColors: ['796', 'B5200', '415', '444', '310', '754']
+    allowedColors: ['310', '414', 'WHITE', '3846', '973', '950']
   },
   {
     id: 'current-40-50',
@@ -51,7 +51,7 @@ const DIAMOND_ART_KITS: DiamondArtKit[] = [
     maxColors: 6,
     diamondSizeMm: 4.0,
     description: 'Canvas center crops image. Uses 6 standard colors.',
-    allowedColors: ['796', 'B5200', '415', '444', '310', '754']
+    allowedColors: ['310', '414', 'WHITE', '3846', '973', '950']
   },
   {
     id: 'upcoming-30-40',
@@ -83,7 +83,7 @@ const DIAMOND_ART_KITS: DiamondArtKit[] = [
 
 
 
-type FilterType = 'classic' | 'pop-art' | 'premium';
+type FilterType = 'classic' | 'pop-art';
 
 interface FilterPreset {
   id: FilterType;
@@ -113,11 +113,11 @@ const FILTER_PRESETS: FilterPreset[] = [
     contrast: 20,
     saturation: -100,
     exposure: 0,
-    sharpen: true,
+    sharpen: false,
     algorithm: 'k-means',
-    dither: true,
+    dither: false,
     isGrayscale: true,
-    allowedColors: ['310', '413', '640', '3864']
+    allowedColors: ['310', '414', 'WHITE']
   },
   {
     id: 'pop-art',
@@ -129,27 +129,11 @@ const FILTER_PRESETS: FilterPreset[] = [
     contrast: 25,
     saturation: 40,
     exposure: 5,
-    sharpen: true,
+    sharpen: false,
     algorithm: 'k-means',
-    dither: true,
+    dither: false,
     isGrayscale: false,
-    allowedColors: ['304', '3843', '3756', '976', '3862', '433', '310']
-  },
-  {
-    id: 'premium',
-    name: 'Premium Portrait',
-    subtitle: 'Soft | Artistic | Hand Painted Look',
-    description: 'Warm skin tones combined with cool backgrounds to produce a realistic, hand-painted portrait effect.',
-    bestFor: 'Most Realistic, Family Portraits, Premium Gifts',
-    brightness: 5,
-    contrast: 15,
-    saturation: 15,
-    exposure: 0,
-    sharpen: true,
-    algorithm: 'k-means',
-    dither: true,
-    isGrayscale: false,
-    allowedColors: ['304', '976', '3840', '3843', '3756', '640', '433', '3864', '3862', '413', '310']
+    allowedColors: ['3846', '414', '973', '950', '310', 'WHITE']
   }
 ];
 
@@ -163,19 +147,13 @@ export default function App() {
         if (preset.id === 'classic') {
           return {
             ...preset,
-            allowedColors: ['310', '415', 'B5200']
+            allowedColors: ['310', '414', 'WHITE']
           };
         }
         if (preset.id === 'pop-art') {
           return {
             ...preset,
-            allowedColors: ['796', '444', '310', 'B5200', '754']
-          };
-        }
-        if (preset.id === 'premium') {
-          return {
-            ...preset,
-            allowedColors: ['796', 'B5200', '415', '444', '310', '754']
+            allowedColors: ['3846', '414', '973', '950', '310', 'WHITE']
           };
         }
       } else {
@@ -191,12 +169,6 @@ export default function App() {
             allowedColors: ['304', '3843', '3756', '976', '3862', '433', '310']
           };
         }
-        if (preset.id === 'premium') {
-          return {
-            ...preset,
-            allowedColors: ['304', '976', '3840', '3843', '3756', '640', '433', '3864', '3862', '413', '310', 'B5200', '754']
-          };
-        }
       }
       return preset;
     });
@@ -205,12 +177,11 @@ export default function App() {
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
   const [processedImageObj, setProcessedImageObj] = useState<HTMLImageElement | null>(null);
-  const [activeFilter, setActiveFilter] = useState<FilterType>('premium');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('classic');
   const [isProcessing, setIsProcessing] = useState(false);
   const [filterPreviews, setFilterPreviews] = useState<Record<FilterType, string | null>>({
     classic: null,
-    'pop-art': null,
-    premium: null
+    'pop-art': null
   });
 
   // Wizard Screen Router States
@@ -235,8 +206,10 @@ export default function App() {
   const [viewerPan, setViewerPan] = useState({ x: 0, y: 0 });
   const hasAutoZoomedRef = useRef(false);
   const [selectedColorCode, setSelectedColorCode] = useState<string | null>(null);
-  const showSymbols = true;
-  const showCompleted = true;
+  const [showSymbols, setShowSymbols] = useState(true);
+  const [showCompleted, setShowCompleted] = useState(true);
+  const [showGridLines, setShowGridLines] = useState(true);
+  const [smoothPreviewMode, setSmoothPreviewMode] = useState(false);
   const searchQuery = '';
   const [completedCells, setCompletedCells] = useState<Set<string>>(new Set());
   
@@ -259,24 +232,24 @@ export default function App() {
     img.src = processedImage;
   }, [processedImage]);
 
-  // Generate three filter previews using canvas
+  // Generate filter previews using canvas
   useEffect(() => {
     if (!croppedImage) {
-      setFilterPreviews({ classic: null, 'pop-art': null, premium: null });
+      setFilterPreviews({ classic: null, 'pop-art': null });
       return;
     }
 
     const tempImg = new Image();
     tempImg.onload = () => {
-      const previews: Record<FilterType, string> = { classic: '', 'pop-art': '', premium: '' };
+      const previews: Record<FilterType, string> = { classic: '', 'pop-art': '' };
 
       getFilterPresets().forEach(preset => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Scale down to a preview size (max width 160px)
-        const maxDim = 160;
+        // Scale down to a preview size (max width 480px for smoother display)
+        const maxDim = 480;
         let w = tempImg.width;
         let h = tempImg.height;
         if (w > h) {
@@ -289,6 +262,10 @@ export default function App() {
 
         canvas.width = w;
         canvas.height = h;
+
+        // High quality smoothing for the previews
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
 
         // Previews use the cropped image directly
         ctx.drawImage(tempImg, 0, 0, w, h);
@@ -387,6 +364,11 @@ export default function App() {
 
       filterCanvas.width = tempImg.width;
       filterCanvas.height = tempImg.height;
+
+      // Enable high-quality smoothing for filter drawing
+      fCtx.imageSmoothingEnabled = true;
+      fCtx.imageSmoothingQuality = 'high';
+
       fCtx.drawImage(tempImg, 0, 0);
 
       const imgData = fCtx.getImageData(0, 0, filterCanvas.width, filterCanvas.height);
@@ -491,6 +473,10 @@ export default function App() {
       quantCanvas.width = selectedKit.gridWidth;
       quantCanvas.height = selectedKit.gridHeight;
 
+      // Enable high-quality image smoothing during low-res grid downsampling
+      qCtx.imageSmoothingEnabled = true;
+      qCtx.imageSmoothingQuality = 'high';
+
       qCtx.drawImage(filterCanvas, 0, 0, selectedKit.gridWidth, selectedKit.gridHeight);
       const gridImgData = qCtx.getImageData(0, 0, selectedKit.gridWidth, selectedKit.gridHeight);
 
@@ -529,7 +515,7 @@ export default function App() {
         const count = countsMap.get(c.code) || 0;
         return {
           ...c,
-          symbol: VISUAL_SYMBOLS[index % VISUAL_SYMBOLS.length],
+          symbol: String(index + 1), // Sequential numbering instead of glyph symbols
           count,
           percentage: (count / totalPixels) * 100
         };
@@ -858,6 +844,8 @@ export default function App() {
     const startCellY = Math.max(0, Math.floor(viewTop / cellBaseSize));
     const endCellY = Math.min(pattern.height - 1, Math.floor(viewBottom / cellBaseSize));
 
+    const drawSmoothing = smoothPreviewMode || viewerZoom < 0.25;
+
     // 2. Draw Diamond drills
     for (let y = startCellY; y <= endCellY; y++) {
       for (let x = startCellX; x <= endCellX; x++) {
@@ -879,12 +867,17 @@ export default function App() {
         ctx.fillStyle = info.hex;
 
         // Darken non-matches
-        if (!isHighlighted || !isSearched) {
+        if (!drawSmoothing && (!isHighlighted || !isSearched)) {
           ctx.fillStyle = `rgba(${info.r}, ${info.g}, ${info.b}, 0.15)`;
+        } else if (drawSmoothing && !isHighlighted) {
+          ctx.fillStyle = `rgba(${info.r}, ${info.g}, ${info.b}, 0.25)`; // subtle darken for non-selected in smooth preview
         }
 
         ctx.beginPath();
-        if (selectedKit.shape === 'square') {
+        if (drawSmoothing) {
+          ctx.rect(cx, cy, cellBaseSize, cellBaseSize);
+          ctx.fill();
+        } else if (selectedKit.shape === 'square') {
           ctx.rect(cx + 0.5, cy + 0.5, cellBaseSize - 1, cellBaseSize - 1);
           ctx.fill();
         } else {
@@ -892,35 +885,37 @@ export default function App() {
           ctx.fill();
         }
 
-        // Draw symbol
-        if (showSymbols && viewerZoom >= 0.8 && (!isCellCompleted || showCompleted)) {
-          ctx.fillStyle = isHighlighted && isSearched ? '#1e293b' : 'rgba(30, 41, 59, 0.4)';
-          ctx.font = `bold ${cellBaseSize * 0.7}px sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(info.symbol, cx + cellBaseSize / 2, cy + cellBaseSize / 2 + 0.5);
-        }
+        if (!drawSmoothing) {
+          // Draw symbol
+          if (showSymbols && viewerZoom >= 0.8 && (!isCellCompleted || showCompleted)) {
+            ctx.fillStyle = isHighlighted && isSearched ? '#1e293b' : 'rgba(30, 41, 59, 0.4)';
+            ctx.font = `bold ${cellBaseSize * 0.7}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(info.symbol, cx + cellBaseSize / 2, cy + cellBaseSize / 2 + 0.5);
+          }
 
-        // Complete checkmark overlay
-        if (isCellCompleted && showCompleted) {
-          ctx.fillStyle = 'rgba(244, 63, 94, 0.3)'; // translucent pink overlay
-          ctx.fillRect(cx, cy, cellBaseSize, cellBaseSize);
-          ctx.fillStyle = '#ffffff';
-          ctx.font = `bold ${cellBaseSize * 0.8}px sans-serif`;
-          ctx.fillText('✓', cx + cellBaseSize / 2, cy + cellBaseSize / 2);
-        }
+          // Complete checkmark overlay
+          if (isCellCompleted && showCompleted) {
+            ctx.fillStyle = 'rgba(244, 63, 94, 0.3)'; // translucent pink overlay
+            ctx.fillRect(cx, cy, cellBaseSize, cellBaseSize);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${cellBaseSize * 0.8}px sans-serif`;
+            ctx.fillText('✓', cx + cellBaseSize / 2, cy + cellBaseSize / 2);
+          }
 
-        // Borders
-        if (viewerZoom >= 0.5) {
-          ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
-          ctx.lineWidth = 0.5;
-          ctx.strokeRect(cx, cy, cellBaseSize, cellBaseSize);
+          // Borders
+          if (viewerZoom >= 0.5) {
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+            ctx.lineWidth = 0.5;
+            ctx.strokeRect(cx, cy, cellBaseSize, cellBaseSize);
+          }
         }
       }
     }
 
     // Draw vertical and horizontal thick grid lines every 10 cells
-    if (viewerZoom >= 0.3) {
+    if (showGridLines && !drawSmoothing && viewerZoom >= 0.3) {
       ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
       ctx.lineWidth = 1.0;
       
@@ -986,7 +981,7 @@ export default function App() {
       Math.min(miniH, mapBottom - mapTop)
     );
 
-  }, [pattern, processedImageObj, viewerZoom, viewerPan, selectedColorCode, showSymbols, showCompleted, searchQuery, completedCells, selectedKit]);
+  }, [pattern, processedImageObj, viewerZoom, viewerPan, selectedColorCode, showSymbols, showCompleted, showGridLines, smoothPreviewMode, searchQuery, completedCells, selectedKit]);
 
   // Click / Drag handlers to support panning and completing cells
   // Shared helper for completing/uncompleting cells via click or touch tap
@@ -1475,6 +1470,7 @@ export default function App() {
   // Helper component to render small canvas grid previews for style selection
   const MiniGridPreview = ({ filterId, allowedColors }: { filterId: string; allowedColors: string[] }) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
       const canvas = canvasRef.current;
@@ -1482,6 +1478,7 @@ export default function App() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
+      setIsLoading(true);
       const tempImg = new Image();
       tempImg.onload = () => {
         const previewWidth = 32;
@@ -1489,16 +1486,24 @@ export default function App() {
 
         const tempCanvas = document.createElement('canvas');
         const tCtx = tempCanvas.getContext('2d');
-        if (!tCtx) return;
+        if (!tCtx) {
+          setIsLoading(false);
+          return;
+        }
         tempCanvas.width = previewWidth;
         tempCanvas.height = previewHeight;
+
+        // Enable high-quality downsampling smoothing
+        tCtx.imageSmoothingEnabled = true;
+        tCtx.imageSmoothingQuality = 'high';
         tCtx.drawImage(tempImg, 0, 0, previewWidth, previewHeight);
 
         const imgData = tCtx.getImageData(0, 0, previewWidth, previewHeight);
         const data = imgData.data;
 
         const allowedDMC = DMC_COLORS.filter(c => allowedColors.includes(c.code));
-        const result = quantizeImage(data, previewWidth, previewHeight, 'k-means', allowedDMC.length, true, allowedDMC);
+        // Run with dither = false for a smooth painting look
+        const result = quantizeImage(data, previewWidth, previewHeight, 'k-means', allowedDMC.length, false, allowedDMC);
 
         canvas.width = 180;
         canvas.height = 120;
@@ -1510,25 +1515,34 @@ export default function App() {
 
         result.pixels.forEach(p => {
           ctx.fillStyle = p.dmc.hex;
-          ctx.fillRect(p.x * cellW, p.y * cellH, cellW - 0.5, cellH - 0.5);
+          // Draw cell filled completely (no gaps) for smoothness
+          ctx.fillRect(p.x * cellW, p.y * cellH, cellW, cellH);
 
-          // Render symbol on cell
+          // Render symbol (sequential number) on cell
           ctx.fillStyle = (p.dmc.r * 0.299 + p.dmc.g * 0.587 + p.dmc.b * 0.114) > 128 ? '#000000' : '#ffffff';
-          ctx.font = '6px sans-serif';
+          ctx.font = 'bold 6px sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           
-          // Get visual symbol from symbols list
           const symbolIndex = allowedColors.indexOf(p.dmc.code);
-          const symbol = VISUAL_SYMBOLS[symbolIndex % VISUAL_SYMBOLS.length] || '•';
+          const symbol = String(symbolIndex + 1); // Sequential numbering instead of symbols
           ctx.fillText(symbol, p.x * cellW + cellW / 2, p.y * cellH + cellH / 2);
         });
+
+        setIsLoading(false);
       };
       tempImg.src = croppedImage;
     }, [croppedImage, filterId, allowedColors]);
 
     return (
-      <canvas ref={canvasRef} className="rounded-xl border border-slate-200 w-[180px] h-[120px] shadow-inner bg-slate-50" />
+      <div className="relative w-[180px] h-[120px] rounded-xl overflow-hidden border border-slate-200 shadow-inner bg-slate-50">
+        <canvas ref={canvasRef} className="w-[180px] h-[120px] block" />
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-50/85">
+            <RefreshCw className="h-5 w-5 text-pink-500 animate-spin" />
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -1546,15 +1560,15 @@ export default function App() {
               <span>← Back to Crop</span>
             </button>
             <h2 className="text-2xl font-black bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent uppercase tracking-tight">
-              JUST SHOP SAGA – 3 ART STYLE PREVIEW
+              JUST SHOP SAGA – 2 ART STYLE PREVIEW
             </h2>
             <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">
-              SAME PHOTO – 3 DIFFERENT STYLES | CHOOSE YOUR FAVOURITE
+              SAME PHOTO – 2 DIFFERENT STYLES | CHOOSE YOUR FAVOURITE
             </p>
           </div>
 
-          {/* Grid layout for 3 columns */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+          {/* Grid layout for 2 columns */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start max-w-4xl mx-auto">
             {getFilterPresets().map((preset, idx) => {
               const previewSrc = filterPreviews[preset.id];
               const allowedDMC = DMC_COLORS.filter(c => preset.allowedColors.includes(c.code));
@@ -1598,7 +1612,7 @@ export default function App() {
                     </span>
                     <div className="flex flex-wrap items-center justify-center gap-1.5">
                       {allowedDMC.map((c, sIdx) => {
-                        const symbol = VISUAL_SYMBOLS[sIdx % VISUAL_SYMBOLS.length] || '•';
+                        const symbol = String(sIdx + 1); // Use numbers instead of visual symbols
                         return (
                           <div key={c.code} className="flex flex-col items-center bg-slate-50 border border-slate-200 p-1.5 rounded-xl min-w-[42px] shrink-0 text-center">
                             <div className="w-4 h-4 rounded border border-slate-200 shadow-inner flex items-center justify-center" style={{ backgroundColor: c.hex }}>
@@ -1719,6 +1733,96 @@ export default function App() {
                 </div>
               );
             })()}
+          </div>
+
+          {/* VIEWER DISPLAY OPTIONS */}
+          <div className="space-y-4 border-t border-slate-200 pt-6">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-pink-500 block">Viewer Options</span>
+            <div className="space-y-3 bg-white border border-slate-200 p-4 rounded-2xl">
+              
+              {/* Painting Mode (Smooth Preview) Toggle */}
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <label htmlFor="toggle-painting-mode" className="text-xs font-black text-slate-800 uppercase tracking-tight block">Painting Mode</label>
+                  <span className="text-[10px] text-slate-500 font-bold block">Smooth continuous colors</span>
+                </div>
+                <button
+                  id="toggle-painting-mode"
+                  onClick={() => setSmoothPreviewMode(!smoothPreviewMode)}
+                  className={`w-11 h-6 rounded-full transition duration-250 cursor-pointer relative p-0.5 ${
+                    smoothPreviewMode ? 'bg-pink-600' : 'bg-slate-200'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition duration-250 ${
+                    smoothPreviewMode ? 'translate-x-5' : 'translate-x-0'
+                  }`} />
+                </button>
+              </div>
+
+              {/* Show Grid Toggle */}
+              <div className={`flex items-center justify-between transition-opacity duration-200 ${
+                smoothPreviewMode ? 'opacity-50 pointer-events-none' : 'opacity-100'
+              }`}>
+                <div className="space-y-0.5">
+                  <label htmlFor="toggle-grid-lines" className="text-xs font-black text-slate-800 uppercase tracking-tight block">Show Grid Lines</label>
+                  <span className="text-[10px] text-slate-500 font-bold block">10x10 coordinate meshes</span>
+                </div>
+                <button
+                  id="toggle-grid-lines"
+                  disabled={smoothPreviewMode}
+                  onClick={() => setShowGridLines(!showGridLines)}
+                  className={`w-11 h-6 rounded-full transition duration-250 cursor-pointer relative p-0.5 ${
+                    showGridLines ? 'bg-pink-600' : 'bg-slate-200'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition duration-250 ${
+                    showGridLines ? 'translate-x-5' : 'translate-x-0'
+                  }`} />
+                </button>
+              </div>
+
+              {/* Show Symbols Toggle */}
+              <div className={`flex items-center justify-between transition-opacity duration-200 ${
+                smoothPreviewMode ? 'opacity-50 pointer-events-none' : 'opacity-100'
+              }`}>
+                <div className="space-y-0.5">
+                  <label htmlFor="toggle-symbols" className="text-xs font-black text-slate-800 uppercase tracking-tight block">Show Symbols</label>
+                  <span className="text-[10px] text-slate-500 font-bold block">Overlay numbers in cells</span>
+                </div>
+                <button
+                  id="toggle-symbols"
+                  disabled={smoothPreviewMode}
+                  onClick={() => setShowSymbols(!showSymbols)}
+                  className={`w-11 h-6 rounded-full transition duration-250 cursor-pointer relative p-0.5 ${
+                    showSymbols ? 'bg-pink-600' : 'bg-slate-200'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition duration-250 ${
+                    showSymbols ? 'translate-x-5' : 'translate-x-0'
+                  }`} />
+                </button>
+              </div>
+
+              {/* Show Completed Toggle */}
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <label htmlFor="toggle-completed" className="text-xs font-black text-slate-800 uppercase tracking-tight block">Show Completed</label>
+                  <span className="text-[10px] text-slate-500 font-bold block">Checkmarks on finished cells</span>
+                </div>
+                <button
+                  id="toggle-completed"
+                  onClick={() => setShowCompleted(!showCompleted)}
+                  className={`w-11 h-6 rounded-full transition duration-250 cursor-pointer relative p-0.5 ${
+                    showCompleted ? 'bg-pink-600' : 'bg-slate-200'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition duration-250 ${
+                    showCompleted ? 'translate-x-5' : 'translate-x-0'
+                  }`} />
+                </button>
+              </div>
+
+            </div>
           </div>
 
           {/* DOWNLOAD & INSTRUCTIONS BUTTON */}

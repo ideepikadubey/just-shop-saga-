@@ -86,6 +86,11 @@ export const DMC_COLORS: DMCColor[] = [
   { code: '640', name: 'Khaki Gray', r: 134, g: 124, b: 109, hex: '#867C6D' },
   { code: '3864', name: 'Light Skin', r: 225, g: 205, b: 188, hex: '#E1CDBD' },
   { code: '3862', name: 'Medium Skin', r: 138, g: 104, b: 84, hex: '#8A6854' },
+  { code: '414', name: 'Steel Gray Dark', r: 140, g: 140, b: 140, hex: '#8C8C8C' },
+  { code: '3846', name: 'Bright Turquoise Light', r: 6, g: 227, b: 230, hex: '#06E3E6' },
+  { code: '973', name: 'Canary Bright', r: 255, g: 227, b: 0, hex: '#FFE300' },
+  { code: '950', name: 'Desert Sand Light', r: 238, g: 211, b: 196, hex: '#EED3C4' },
+  { code: 'WHITE', name: 'White', r: 255, g: 255, b: 255, hex: '#FFFFFF' },
 ];
 
 // Helper to get nearest DMC color using Euclidean distance in RGB space
