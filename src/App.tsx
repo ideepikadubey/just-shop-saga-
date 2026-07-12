@@ -205,6 +205,8 @@ export default function App() {
   const [viewerZoom, setViewerZoom] = useState(1);
   const [viewerPan, setViewerPan] = useState({ x: 0, y: 0 });
   const hasAutoZoomedRef = useRef(false);
+  const viewerTouchStartDistance = useRef<number>(0);
+  const viewerTouchStartZoom = useRef<number>(1);
   const [selectedColorCode, setSelectedColorCode] = useState<string | null>(null);
   const [showSymbols, setShowSymbols] = useState(true);
   const [showCompleted, setShowCompleted] = useState(true);
@@ -628,6 +630,8 @@ export default function App() {
   const cropCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [cropIsDragging, setCropIsDragging] = useState(false);
   const cropDragStart = useRef({ x: 0, y: 0 });
+  const cropTouchStartDistance = useRef<number>(0);
+  const cropTouchStartZoom = useRef<number>(1);
 
   const handleCropMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     setCropIsDragging(true);
@@ -656,25 +660,47 @@ export default function App() {
       setCropIsDragging(true);
       const touch = e.touches[0];
       cropDragStart.current = { x: touch.clientX, y: touch.clientY };
+    } else if (e.touches.length === 2) {
+      // Initialize pinch-to-zoom touch points
+      setCropIsDragging(false);
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      cropTouchStartDistance.current = dist;
+      cropTouchStartZoom.current = cropZoom;
     }
   };
 
   const handleCropTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (!cropIsDragging || e.touches.length !== 1) return;
-    const touch = e.touches[0];
-    const dx = touch.clientX - cropDragStart.current.x;
-    const dy = touch.clientY - cropDragStart.current.y;
-    
-    setCropPan(prev => ({
-      x: prev.x + dx,
-      y: prev.y + dy
-    }));
-    
-    cropDragStart.current = { x: touch.clientX, y: touch.clientY };
+    if (e.touches.length === 1) {
+      if (!cropIsDragging) return;
+      const touch = e.touches[0];
+      const dx = touch.clientX - cropDragStart.current.x;
+      const dy = touch.clientY - cropDragStart.current.y;
+      
+      setCropPan(prev => ({
+        x: prev.x + dx,
+        y: prev.y + dy
+      }));
+      
+      cropDragStart.current = { x: touch.clientX, y: touch.clientY };
+    } else if (e.touches.length === 2) {
+      // Calculate current pinch distance and scale zoom
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      
+      if (cropTouchStartDistance.current > 0) {
+        const scale = dist / cropTouchStartDistance.current;
+        const targetZoom = cropTouchStartZoom.current * scale;
+        setCropZoom(Math.max(0.1, Math.min(15, targetZoom)));
+      }
+    }
   };
 
-  const handleCropTouchEnd = () => {
+  const handleCropTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
     setCropIsDragging(false);
+    cropTouchStartDistance.current = 0;
   };
 
   // Bind non-passive wheel listener directly for scroll zoom
@@ -684,12 +710,10 @@ export default function App() {
 
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
-      const zoomFactor = 1.05;
-      if (e.deltaY < 0) {
-        setCropZoom(prev => Math.min(15, prev * zoomFactor));
-      } else {
-        setCropZoom(prev => Math.max(0.1, prev / zoomFactor));
-      }
+      // Fine gestures: use smaller steps for e.ctrlKey (trackpad pinch) and smooth exponential scaling for normal scroll
+      const multiplier = e.ctrlKey ? 0.015 : 0.0015;
+      const zoomFactor = Math.exp(-e.deltaY * multiplier);
+      setCropZoom(prev => Math.max(0.1, Math.min(15, prev * zoomFactor)));
     };
 
     canvas.addEventListener('wheel', handleWheel, { passive: false });
@@ -1063,36 +1087,81 @@ export default function App() {
 
   // Touch handlers for mobile devices
   const handleViewerTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (!pattern || e.touches.length !== 1) return;
-    isDraggingRef.current = false;
-    const touch = e.touches[0];
-    dragStartRef.current = { x: touch.clientX, y: touch.clientY };
+    if (!pattern) return;
+    if (e.touches.length === 1) {
+      isDraggingRef.current = false;
+      const touch = e.touches[0];
+      dragStartRef.current = { x: touch.clientX, y: touch.clientY };
+    } else if (e.touches.length === 2) {
+      // Setup viewer pinch zoom
+      isDraggingRef.current = true;
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      viewerTouchStartDistance.current = dist;
+      viewerTouchStartZoom.current = viewerZoom;
+    }
   };
 
   const handleViewerTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (!pattern || e.touches.length !== 1) return;
-    const touch = e.touches[0];
-    const dx = touch.clientX - dragStartRef.current.x;
-    const dy = touch.clientY - dragStartRef.current.y;
+    if (!pattern) return;
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      const dx = touch.clientX - dragStartRef.current.x;
+      const dy = touch.clientY - dragStartRef.current.y;
 
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
-      isDraggingRef.current = true;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        isDraggingRef.current = true;
+      }
+
+      setViewerPan(prev => ({
+        x: prev.x + dx,
+        y: prev.y + dy
+      }));
+      dragStartRef.current = { x: touch.clientX, y: touch.clientY };
+    } else if (e.touches.length === 2) {
+      // Execute viewer pinch zoom
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      
+      if (viewerTouchStartDistance.current > 0) {
+        const scale = dist / viewerTouchStartDistance.current;
+        const targetZoom = viewerTouchStartZoom.current * scale;
+        setViewerZoom(Math.max(0.05, Math.min(10, targetZoom)));
+      }
     }
-
-    setViewerPan(prev => ({
-      x: prev.x + dx,
-      y: prev.y + dy
-    }));
-    dragStartRef.current = { x: touch.clientX, y: touch.clientY };
   };
 
   const handleViewerTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
     if (!pattern) return;
+    viewerTouchStartDistance.current = 0;
+    
+    // Only register a click if we were not dragging or pinch-zooming
     if (!isDraggingRef.current && e.changedTouches.length > 0) {
       const touch = e.changedTouches[0];
       handleCellInteraction(touch.clientX, touch.clientY);
     }
   };
+
+  // Bind non-passive wheel listener directly to viewer canvas for smooth scrolling zoom
+  useEffect(() => {
+    const canvas = viewerCanvasRef.current;
+    if (!canvas || activeScreen !== 'grid-viewer') return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      // Trackpad pinch-to-zoom uses ctrlKey. Use exponential scroll zoom for high precision.
+      const multiplier = e.ctrlKey ? 0.015 : 0.0015;
+      const zoomFactor = Math.exp(-e.deltaY * multiplier);
+      setViewerZoom(prev => Math.max(0.05, Math.min(10, prev * zoomFactor)));
+    };
+
+    canvas.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      canvas.removeEventListener('wheel', handleWheel);
+    };
+  }, [activeScreen]);
 
   // PDF Download action
   const triggerPDFExport = () => {
