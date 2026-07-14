@@ -37,6 +37,7 @@ export const DMC_COLORS: DMCColor[] = [
   { code: '745', name: 'Pale Yellow', r: 254, g: 238, b: 181, hex: '#FEEEB5' },
 
   // Greens
+  { code: '934', name: 'Avocado Green Black', r: 49, g: 57, b: 25, hex: '#313919' },
   { code: '702', name: 'Kelly Green', r: 71, g: 161, b: 79, hex: '#47A14F' },
   { code: '700', name: 'Bright Green', r: 3, g: 122, b: 52, hex: '#037A34' },
   { code: '699', name: 'Green Dark', r: 11, g: 99, b: 46, hex: '#0B632E' },

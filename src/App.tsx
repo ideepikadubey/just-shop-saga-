@@ -37,7 +37,7 @@ const DIAMOND_ART_KITS: DiamondArtKit[] = [
     maxColors: 6,
     diamondSizeMm: 4.0,
     description: 'Canvas center crops image. Uses 6 standard colors.',
-    allowedColors: ['310', '414', 'WHITE', '3846', '973', '950']
+    allowedColors: ['310', '414', 'WHITE', '307', '934', '3846']
   },
   {
     id: 'current-40-50',
@@ -51,7 +51,7 @@ const DIAMOND_ART_KITS: DiamondArtKit[] = [
     maxColors: 6,
     diamondSizeMm: 4.0,
     description: 'Canvas center crops image. Uses 6 standard colors.',
-    allowedColors: ['310', '414', 'WHITE', '3846', '973', '950']
+    allowedColors: ['310', '414', 'WHITE', '307', '934', '3846']
   },
   {
     id: 'upcoming-30-40',
@@ -65,6 +65,7 @@ const DIAMOND_ART_KITS: DiamondArtKit[] = [
     maxColors: 13,
     diamondSizeMm: 2.8,
     description: 'Vibrant 13-color palette for fine-grain detail.',
+    allowedColors: ['304', '3843', '3756', '976', '3862', '433', '310', '414', '640', '3864', 'WHITE', '602', '702']
   },
   {
     id: 'upcoming-40-50',
@@ -78,6 +79,7 @@ const DIAMOND_ART_KITS: DiamondArtKit[] = [
     maxColors: 13,
     diamondSizeMm: 2.8,
     description: 'Vibrant 13-color palette for fine-grain detail.',
+    allowedColors: ['304', '3843', '3756', '976', '3862', '433', '310', '414', '640', '3864', 'WHITE', '602', '702']
   }
 ];
 
@@ -133,7 +135,7 @@ const FILTER_PRESETS: FilterPreset[] = [
     algorithm: 'k-means',
     dither: false,
     isGrayscale: false,
-    allowedColors: ['3846', '414', '973', '950', '310', 'WHITE']
+    allowedColors: ['307', '310', '934', '3846', '414', 'WHITE']
   }
 ];
 
@@ -153,20 +155,20 @@ export default function App() {
         if (preset.id === 'pop-art') {
           return {
             ...preset,
-            allowedColors: ['3846', '414', '973', '950', '310', 'WHITE']
+            allowedColors: ['307', '310', '934', '3846', '414', 'WHITE']
           };
         }
       } else {
         if (preset.id === 'classic') {
           return {
             ...preset,
-            allowedColors: ['310', '413', '640', '3864']
+            allowedColors: ['310', '414', '640', '3864', 'WHITE']
           };
         }
         if (preset.id === 'pop-art') {
           return {
             ...preset,
-            allowedColors: ['304', '3843', '3756', '976', '3862', '433', '310']
+            allowedColors: ['304', '3843', '3756', '976', '3862', '433', '310', '414', '640', '3864', 'WHITE', '602', '702']
           };
         }
       }
@@ -211,7 +213,7 @@ export default function App() {
   const [showSymbols, setShowSymbols] = useState(true);
   const [showCompleted, setShowCompleted] = useState(true);
   const [showGridLines, setShowGridLines] = useState(true);
-  const [smoothPreviewMode, setSmoothPreviewMode] = useState(false);
+  const [smoothPreviewMode, setSmoothPreviewMode] = useState(true);
   const searchQuery = '';
   const [completedCells, setCompletedCells] = useState<Set<string>>(new Set());
   
@@ -868,7 +870,7 @@ export default function App() {
     const startCellY = Math.max(0, Math.floor(viewTop / cellBaseSize));
     const endCellY = Math.min(pattern.height - 1, Math.floor(viewBottom / cellBaseSize));
 
-    const drawSmoothing = smoothPreviewMode || viewerZoom < 0.25;
+    const drawSmoothing = true;
 
     // 2. Draw Diamond drills
     for (let y = startCellY; y <= endCellY; y++) {
@@ -899,7 +901,7 @@ export default function App() {
 
         ctx.beginPath();
         if (drawSmoothing) {
-          ctx.rect(cx, cy, cellBaseSize, cellBaseSize);
+          ctx.rect(cx - 0.2, cy - 0.2, cellBaseSize + 0.4, cellBaseSize + 0.4);
           ctx.fill();
         } else if (selectedKit.shape === 'square') {
           ctx.rect(cx + 0.5, cy + 0.5, cellBaseSize - 1, cellBaseSize - 1);
@@ -927,38 +929,7 @@ export default function App() {
             ctx.font = `bold ${cellBaseSize * 0.8}px sans-serif`;
             ctx.fillText('✓', cx + cellBaseSize / 2, cy + cellBaseSize / 2);
           }
-
-          // Borders
-          if (viewerZoom >= 0.5) {
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
-            ctx.lineWidth = 0.5;
-            ctx.strokeRect(cx, cy, cellBaseSize, cellBaseSize);
-          }
         }
-      }
-    }
-
-    // Draw vertical and horizontal thick grid lines every 10 cells
-    if (showGridLines && !drawSmoothing && viewerZoom >= 0.3) {
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.lineWidth = 1.0;
-      
-      // Vertical lines
-      for (let x = 0; x <= pattern.width; x += 10) {
-        const lx = x * cellBaseSize;
-        ctx.beginPath();
-        ctx.moveTo(lx, 0);
-        ctx.lineTo(lx, pattern.height * cellBaseSize);
-        ctx.stroke();
-      }
-      
-      // Horizontal lines
-      for (let y = 0; y <= pattern.height; y += 10) {
-        const ly = y * cellBaseSize;
-        ctx.beginPath();
-        ctx.moveTo(0, ly);
-        ctx.lineTo(pattern.width * cellBaseSize, ly);
-        ctx.stroke();
       }
     }
 
@@ -976,18 +947,39 @@ export default function App() {
     ctx.lineWidth = 1;
     ctx.strokeRect(miniX - 4, miniY - 4, miniW + 8, miniH + 8);
 
-    const miniCellW = miniW / pattern.width;
-    const miniCellH = miniH / pattern.height;
+    // Render minimap pixels onto a 1:1 offscreen canvas first, then scale draw it to eliminate fractional sub-pixel anti-aliasing gaps (fake grid lines)
+    const offscreen = document.createElement('canvas');
+    offscreen.width = pattern.width;
+    offscreen.height = pattern.height;
+    const oCtx = offscreen.getContext('2d');
+    if (oCtx) {
+      const oImgData = oCtx.createImageData(pattern.width, pattern.height);
+      const oData = oImgData.data;
 
-    for (let y = 0; y < pattern.height; y++) {
-      for (let x = 0; x < pattern.width; x++) {
-        const colorCode = pixelGrid[y][x];
-        const info = colorMap.get(colorCode);
+      pattern.pixels.forEach(p => {
+        const info = colorMap.get(p.colorCode);
         if (info) {
-          ctx.fillStyle = completedCells.has(`${x},${y}`) && !showCompleted ? 'rgba(30, 41, 59, 0.2)' : info.hex;
-          ctx.fillRect(miniX + x * miniCellW, miniY + y * miniCellH, miniCellW + 0.1, miniCellH + 0.1);
+          const idx = (p.y * pattern.width + p.x) * 4;
+          const isCellCompleted = completedCells.has(`${p.x},${p.y}`);
+          
+          if (isCellCompleted && !showCompleted) {
+            oData[idx] = 30;
+            oData[idx+1] = 41;
+            oData[idx+2] = 59;
+            oData[idx+3] = 51; // Translucent gray
+          } else {
+            oData[idx] = info.r;
+            oData[idx+1] = info.g;
+            oData[idx+2] = info.b;
+            oData[idx+3] = 255;
+          }
         }
-      }
+      });
+      oCtx.putImageData(oImgData, 0, 0);
+
+      // Disable smoothing so it matches the crisp pixel colors or leave enabled for smooth look
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(offscreen, miniX, miniY, miniW, miniH);
     }
 
     // Viewport window outline on minimap
@@ -1656,17 +1648,8 @@ export default function App() {
 
                   {/* Previews Frame */}
                   <div className="flex flex-col items-center space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                    {/* Processed photo */}
-                    <div className="w-full aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center relative">
-                      {previewSrc ? (
-                        <img src={previewSrc} alt={preset.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <RefreshCw className="h-6 w-6 text-slate-400 animate-spin" />
-                      )}
-                    </div>
-
                     {/* Small guide preview canvas */}
-                    <div className="flex flex-col items-center space-y-1 w-full pt-1.5 border-t border-slate-200">
+                    <div className="flex flex-col items-center space-y-1 w-full">
                       <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">
                         Diamond Guide Preview (Zoom)
                       </span>
@@ -1802,96 +1785,6 @@ export default function App() {
                 </div>
               );
             })()}
-          </div>
-
-          {/* VIEWER DISPLAY OPTIONS */}
-          <div className="space-y-4 border-t border-slate-200 pt-6">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-pink-500 block">Viewer Options</span>
-            <div className="space-y-3 bg-white border border-slate-200 p-4 rounded-2xl">
-              
-              {/* Painting Mode (Smooth Preview) Toggle */}
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <label htmlFor="toggle-painting-mode" className="text-xs font-black text-slate-800 uppercase tracking-tight block">Painting Mode</label>
-                  <span className="text-[10px] text-slate-500 font-bold block">Smooth continuous colors</span>
-                </div>
-                <button
-                  id="toggle-painting-mode"
-                  onClick={() => setSmoothPreviewMode(!smoothPreviewMode)}
-                  className={`w-11 h-6 rounded-full transition duration-250 cursor-pointer relative p-0.5 ${
-                    smoothPreviewMode ? 'bg-pink-600' : 'bg-slate-200'
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition duration-250 ${
-                    smoothPreviewMode ? 'translate-x-5' : 'translate-x-0'
-                  }`} />
-                </button>
-              </div>
-
-              {/* Show Grid Toggle */}
-              <div className={`flex items-center justify-between transition-opacity duration-200 ${
-                smoothPreviewMode ? 'opacity-50 pointer-events-none' : 'opacity-100'
-              }`}>
-                <div className="space-y-0.5">
-                  <label htmlFor="toggle-grid-lines" className="text-xs font-black text-slate-800 uppercase tracking-tight block">Show Grid Lines</label>
-                  <span className="text-[10px] text-slate-500 font-bold block">10x10 coordinate meshes</span>
-                </div>
-                <button
-                  id="toggle-grid-lines"
-                  disabled={smoothPreviewMode}
-                  onClick={() => setShowGridLines(!showGridLines)}
-                  className={`w-11 h-6 rounded-full transition duration-250 cursor-pointer relative p-0.5 ${
-                    showGridLines ? 'bg-pink-600' : 'bg-slate-200'
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition duration-250 ${
-                    showGridLines ? 'translate-x-5' : 'translate-x-0'
-                  }`} />
-                </button>
-              </div>
-
-              {/* Show Symbols Toggle */}
-              <div className={`flex items-center justify-between transition-opacity duration-200 ${
-                smoothPreviewMode ? 'opacity-50 pointer-events-none' : 'opacity-100'
-              }`}>
-                <div className="space-y-0.5">
-                  <label htmlFor="toggle-symbols" className="text-xs font-black text-slate-800 uppercase tracking-tight block">Show Symbols</label>
-                  <span className="text-[10px] text-slate-500 font-bold block">Overlay numbers in cells</span>
-                </div>
-                <button
-                  id="toggle-symbols"
-                  disabled={smoothPreviewMode}
-                  onClick={() => setShowSymbols(!showSymbols)}
-                  className={`w-11 h-6 rounded-full transition duration-250 cursor-pointer relative p-0.5 ${
-                    showSymbols ? 'bg-pink-600' : 'bg-slate-200'
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition duration-250 ${
-                    showSymbols ? 'translate-x-5' : 'translate-x-0'
-                  }`} />
-                </button>
-              </div>
-
-              {/* Show Completed Toggle */}
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <label htmlFor="toggle-completed" className="text-xs font-black text-slate-800 uppercase tracking-tight block">Show Completed</label>
-                  <span className="text-[10px] text-slate-500 font-bold block">Checkmarks on finished cells</span>
-                </div>
-                <button
-                  id="toggle-completed"
-                  onClick={() => setShowCompleted(!showCompleted)}
-                  className={`w-11 h-6 rounded-full transition duration-250 cursor-pointer relative p-0.5 ${
-                    showCompleted ? 'bg-pink-600' : 'bg-slate-200'
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition duration-250 ${
-                    showCompleted ? 'translate-x-5' : 'translate-x-0'
-                  }`} />
-                </button>
-              </div>
-
-            </div>
           </div>
 
           {/* DOWNLOAD & INSTRUCTIONS BUTTON */}
