@@ -15,18 +15,18 @@ export function generatePDF(project: Project): void {
   const pageHeight = doc.internal.pageSize.getHeight();
 
   // --- PAGE 1: COVER PAGE ---
-  doc.setFillColor(15, 23, 42); // Dark slate background
+  doc.setFillColor(32, 25, 38); // Soft deep violet background matching brand dark
   doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
   // Title
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(255, 111, 97); // Dear Coral
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(28);
-  doc.text('DIAMOND PAINTING', pageWidth / 2, 40, { align: 'center' });
+  doc.setFontSize(26);
+  doc.text('DEAR GIFTS DIAMOND PAINTING', pageWidth / 2, 40, { align: 'center' });
   
-  doc.setFontSize(16);
+  doc.setFontSize(14);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(148, 163, 184);
+  doc.setTextColor(214, 194, 236); // Lavender Purple tint
   doc.text('Personalized Pattern Instruction Manual', pageWidth / 2, 50, { align: 'center' });
 
   // Draw a sleek frame for the preview image
@@ -52,6 +52,7 @@ export function generatePDF(project: Project): void {
   doc.text(`Grid Resolution: ${pattern.width} x ${pattern.height} pixels`, 40, 225);
   const totalBeads = pattern.width * pattern.height;
   let recommendedPack = Math.ceil((totalBeads * 1.04) / 500) * 500;
+  if (pattern.width === 115 && pattern.height === 155) recommendedPack = 18500;
   if (pattern.width === 107 && pattern.height === 143) recommendedPack = 16000;
   if (pattern.width === 143 && pattern.height === 179) recommendedPack = 26500;
   if (pattern.width === 75 && pattern.height === 100) recommendedPack = 7800;

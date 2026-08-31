@@ -82,6 +82,9 @@ export const DMC_COLORS: DMCColor[] = [
 
   // New Fixed Palette Additions
   { code: '976', name: 'Golden Brown', r: 198, g: 124, b: 67, hex: '#C67C43' },
+  { code: '977', name: 'Golden Brown Light', r: 220, g: 142, b: 78, hex: '#DC8E4E' },
+  { code: '3855', name: 'Autumn Gold Light', r: 249, g: 212, b: 147, hex: '#F9D493' },
+  { code: '209', name: 'Lavender Dark', r: 163, g: 112, b: 172, hex: '#A370AC' },
   { code: '3840', name: 'Light Blue', r: 170, g: 194, b: 226, hex: '#AAC2E2' },
   { code: '3756', name: 'Baby Blue', r: 238, g: 243, b: 245, hex: '#EEF3F5' },
   { code: '640', name: 'Khaki Gray', r: 134, g: 124, b: 109, hex: '#867C6D' },
@@ -94,17 +97,61 @@ export const DMC_COLORS: DMCColor[] = [
   { code: 'WHITE', name: 'White', r: 255, g: 255, b: 255, hex: '#FFFFFF' },
 ];
 
-// Helper to get nearest DMC color using Euclidean distance in RGB space
+// Helper: Convert sRGB [0-255] to CIELAB [L, a, b] for human-eye perceptual color accuracy
+export function rgbToLab(r: number, g: number, b: number): [number, number, number] {
+  // 1. sRGB to linear RGB (inverse gamma companding)
+  let rLin = r / 255;
+  let gLin = g / 255;
+  let bLin = b / 255;
+
+  rLin = rLin > 0.04045 ? Math.pow((rLin + 0.055) / 1.055, 2.4) : rLin / 12.92;
+  gLin = gLin > 0.04045 ? Math.pow((gLin + 0.055) / 1.055, 2.4) : gLin / 12.92;
+  bLin = bLin > 0.04045 ? Math.pow((bLin + 0.055) / 1.055, 2.4) : bLin / 12.92;
+
+  // 2. Linear RGB to CIE XYZ (D65 standard illuminant)
+  const x = (rLin * 0.4124564 + gLin * 0.3575761 + bLin * 0.1804375) / 0.95047;
+  const y = (rLin * 0.2126729 + gLin * 0.7151522 + bLin * 0.0721750) / 1.00000;
+  const z = (rLin * 0.0193339 + gLin * 0.1191920 + bLin * 0.9503041) / 1.08883;
+
+  // 3. CIE XYZ to CIELAB
+  const fx = x > 0.008856 ? Math.cbrt(x) : (7.787 * x) + (16 / 116);
+  const fy = y > 0.008856 ? Math.cbrt(y) : (7.787 * y) + (16 / 116);
+  const fz = z > 0.008856 ? Math.cbrt(z) : (7.787 * z) + (16 / 116);
+
+  const L = (116 * fy) - 16;
+  const a = 500 * (fx - fy);
+  const bVal = 200 * (fy - fz);
+
+  return [L, a, bVal];
+}
+
+// Precomputed cache of CIELAB values for DMC colors for fast lookups
+const labCache = new Map<string, [number, number, number]>();
+
+export function getDmcLab(color: DMCColor): [number, number, number] {
+  const cached = labCache.get(color.code);
+  if (cached) return cached;
+  const lab = rgbToLab(color.r, color.g, color.b);
+  labCache.set(color.code, lab);
+  return lab;
+}
+
+// Helper to get nearest DMC color using CIELAB Delta-E perceptual distance
 export function getNearestDMCColor(r: number, g: number, b: number, customList?: DMCColor[]): DMCColor {
   const list = customList && customList.length > 0 ? customList : DMC_COLORS;
+  const targetLab = rgbToLab(r, g, b);
+  
   let minDistance = Infinity;
   let nearestColor = list[0];
 
   for (const color of list) {
-    const dr = r - color.r;
-    const dg = g - color.g;
-    const db = b - color.b;
-    const distance = dr * dr + dg * dg + db * db;
+    const colLab = getDmcLab(color);
+    const dL = targetLab[0] - colLab[0];
+    const da = targetLab[1] - colLab[1];
+    const db = targetLab[2] - colLab[2];
+
+    // CIELAB Euclidean Delta-E distance
+    const distance = dL * dL + da * da + db * db;
 
     if (distance < minDistance) {
       minDistance = distance;
@@ -114,3 +161,4 @@ export function getNearestDMCColor(r: number, g: number, b: number, customList?:
 
   return nearestColor;
 }
+

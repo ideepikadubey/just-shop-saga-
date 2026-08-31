@@ -10,6 +10,14 @@ export interface DMCColor {
 export type DiamondShape = 'square' | 'round';
 export type QuantizationAlgorithm = 'k-means' | 'median-cut' | 'octree';
 export type GridResolutionPreset = 'low' | 'medium' | 'high' | 'ultra';
+export type FilterType = 
+  | 'vintage' 
+  | 'vintage-classic'
+  | 'pop-art' 
+  | 'pop-art-electric' 
+  | 'pop-art-warm' 
+  | 'premium-soft' 
+  | 'premium-contrast';
 
 export interface EditorSettings {
   brightness: number; // -100 to 100

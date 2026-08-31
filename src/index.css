@@ -1,17 +1,54 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 @import 'tailwindcss';
 
+@theme {
+  --color-dear-coral: #FF6F61;
+  --color-dear-coral-hover: #E05346;
+  --color-dear-coral-light: #FFF0EE;
+  --color-dear-purple: #8B64BA;
+  --color-dear-purple-hover: #744D9F;
+  --color-dear-purple-light: #F3EDF9;
+  --color-dear-amber: #FFA726;
+  --color-dear-dark: #201926;
+
+  /* Overriding Tailwind pink palette to use logo's signature coral red-pink */
+  --color-pink-50: #FFF0EE;
+  --color-pink-100: #FFE0DC;
+  --color-pink-200: #FFC4BD;
+  --color-pink-300: #FFA49A;
+  --color-pink-400: #FF8778;
+  --color-pink-500: #FF6F61;
+  --color-pink-600: #E05346;
+  --color-pink-700: #C23B2F;
+
+  /* Overriding Tailwind purple palette to use logo's signature gifts purple */
+  --color-purple-50: #F3EDF9;
+  --color-purple-100: #E6D9F3;
+  --color-purple-200: #D0B8E7;
+  --color-purple-400: #9E79CA;
+  --color-purple-500: #8B64BA;
+  --color-purple-600: #744D9F;
+  --color-purple-700: #5D3786;
+}
+
 :root {
-  --navy: #0F172A;
-  --pink: #F43F8B;
-  --pink-light: #FDE8F3;
-  --pink-mid: #FAC8E4;
-  --bg: #F8FAFC;
+  --dear-coral: #FF6F61;
+  --dear-coral-hover: #E05346;
+  --dear-coral-light: #FFF0EE;
+  --dear-purple: #8B64BA;
+  --dear-purple-light: #F3EDF9;
+  --dear-amber: #FFA726;
+
+  --navy: #201926;
+  --pink: #FF6F61;
+  --pink-light: #FFF0EE;
+  --pink-mid: #FFC4BD;
+  --bg: #FAF7FC;
   --white: #FFFFFF;
-  --text-dark: #0F172A;
-  --text-mid: #475569;
-  --text-light: #94A3B8;
-  --border: #E2E8F0;
+  --text-dark: #201926;
+  --text-mid: #584B66;
+  --text-light: #9B8EA9;
+  --border: #EFE6F2;
 }
 
 * { box-sizing: border-box; }
@@ -32,3 +69,14 @@ h1, h2, h3, .font-premium-heading {
 
 ::-webkit-scrollbar { width: 0; height: 0; }
 * { scrollbar-width: none; }
+
+.bg-dear-gradient {
+  background: linear-gradient(135deg, #FF6F61 0%, #8B64BA 100%);
+}
+
+.text-dear-gradient {
+  background: linear-gradient(135deg, #FF6F61 0%, #8B64BA 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+

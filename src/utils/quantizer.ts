@@ -1,5 +1,5 @@
 import { DMCColor } from '../types';
-import { getNearestDMCColor, DMC_COLORS } from './dmc';
+import { getNearestDMCColor, DMC_COLORS, rgbToLab, getDmcLab } from './dmc';
 
 
 // -------------------------------------------------------------
@@ -33,20 +33,22 @@ function kmeansQuantize(pixels: Uint8ClampedArray, k: number, allowedColors?: DM
   const iterations = 5;
   for (let iter = 0; iter < iterations; iter++) {
     const clusters: {r: number; g: number; b: number}[][] = Array.from({ length: k }, () => []);
+    const centroidLabs = centroids.map(c => rgbToLab(c.r, c.g, c.b));
     
     for (let i = 0; i < pixels.length; i += 4) {
       const r = pixels[i];
       const g = pixels[i+1];
       const b = pixels[i+2];
+      const pLab = rgbToLab(r, g, b);
 
       let minDist = Infinity;
       let clusterIdx = 0;
 
       for (let j = 0; j < centroids.length; j++) {
-        const dr = r - centroids[j].r;
-        const dg = g - centroids[j].g;
-        const db = b - centroids[j].b;
-        const dist = dr * dr + dg * dg + db * db;
+        const dL = pLab[0] - centroidLabs[j][0];
+        const da = pLab[1] - centroidLabs[j][1];
+        const db = pLab[2] - centroidLabs[j][2];
+        const dist = dL * dL + da * da + db * db;
         if (dist < minDist) {
           minDist = dist;
           clusterIdx = j;
@@ -73,7 +75,7 @@ function kmeansQuantize(pixels: Uint8ClampedArray, k: number, allowedColors?: DM
     }
   }
 
-  // Map centroids to nearest DMC colors
+  // Map centroids to nearest DMC colors using CIELAB
   const paletteMap = new Map<string, DMCColor>();
   for (const c of centroids) {
     const dmc = getNearestDMCColor(c.r, c.g, c.b, allowedColors);
@@ -319,7 +321,7 @@ export function quantizeImage(
   // Ensure palette has at least one color
   if (palette.length === 0) palette = [DMC_COLORS[0]];
 
-  // 2. Map every pixel to the palette, optionally applying Floyd-Steinberg dithering
+  // 2. Map every pixel to the palette with CIELAB Delta-E distance
   const result: { x: number; y: number; r: number; g: number; b: number; dmc: DMCColor }[] = [];
   
   if (dither) {
@@ -333,20 +335,43 @@ export function quantizeImage(
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        const idx = (y * width + x) * 3;
-        const oldR = buffer[idx];
-        const oldG = buffer[idx + 1];
-        const oldB = buffer[idx + 2];
+        const pIdx = (y * width + x) * 4;
+        const origR = pixels[pIdx];
+        const origG = pixels[pIdx + 1];
+        const origB = pixels[pIdx + 2];
+        const origLab = rgbToLab(origR, origG, origB);
 
-        // Find nearest palette color
+        const bIdx = (y * width + x) * 3;
+        const oldR = Math.max(0, Math.min(255, buffer[bIdx]));
+        const oldG = Math.max(0, Math.min(255, buffer[bIdx + 1]));
+        const oldB = Math.max(0, Math.min(255, buffer[bIdx + 2]));
+
+        // Find nearest palette color using CIELAB + Hue Consistency Guard
+        const targetLab = rgbToLab(oldR, oldG, oldB);
         let minDistance = Infinity;
         let nearestColor = palette[0];
 
         for (const col of palette) {
-          const dr = oldR - col.r;
-          const dg = oldG - col.g;
-          const db = oldB - col.b;
-          const dist = dr * dr + dg * dg + db * db;
+          const colLab = getDmcLab(col);
+          const dL = targetLab[0] - colLab[0];
+          const da = targetLab[1] - colLab[1];
+          const db = targetLab[2] - colLab[2];
+
+          // Hue/Chroma mismatch penalty against original un-dithered pixel
+          // Prevents extreme dither spots (e.g. blue/purple/red dots on beige skin)
+          const origDa = origLab[1] - colLab[1];
+          const origDb = origLab[2] - colLab[2];
+          const huePenalty = (origDa * origDa + origDb * origDb) * 0.35;
+
+          // Prevent cool icy white DMC 3756 from creating white paint patch masks on warm skin tones,
+          // BUT ALLOW 3756 for eye whites (sclera), catchlights, teeth, and neutral white highlights!
+          let skinWhitePenalty = 0;
+          const isNeutralEyeOrWhite = (origLab[1] < 10 && origLab[2] < 14) || (origR > 185 && origG > 185 && Math.abs(origR - origB) < 25);
+          if (col.code === '3756' && !isNeutralEyeOrWhite && origR > 110 && origR > origB * 1.18 && origG > origB * 1.02) {
+            skinWhitePenalty = 3000;
+          }
+
+          const dist = dL * dL + da * da + db * db + huePenalty + skinWhitePenalty;
           if (dist < minDistance) {
             minDistance = dist;
             nearestColor = col;
@@ -356,10 +381,15 @@ export function quantizeImage(
         // Add to result
         result.push({ x, y, r: nearestColor.r, g: nearestColor.g, b: nearestColor.b, dmc: nearestColor });
 
-        // Calculate quantization error
-        const errR = oldR - nearestColor.r;
-        const errG = oldG - nearestColor.g;
-        const errB = oldB - nearestColor.b;
+        // Adaptive Error Diffusion:
+        // Preserve crisp outlines for dark facial features (eyes, pupils, eyelashes, eyebrows) and red lips (low error bleed),
+        // while diffusing continuous smooth gradients across skin tones (cheeks, forehead, chin) to eliminate pop-in patches.
+        const isFacialFeature = (origLab[0] < 38) || (origR > 130 && origR > origG * 1.30 && origR > origB * 1.30);
+        const errorFactor = isFacialFeature ? 0.20 : 0.55;
+
+        const errR = (oldR - nearestColor.r) * errorFactor;
+        const errG = (oldG - nearestColor.g) * errorFactor;
+        const errB = (oldB - nearestColor.b) * errorFactor;
 
         // Distribute error to neighbors
         const distribute = (nx: number, ny: number, factor: number) => {
@@ -378,23 +408,33 @@ export function quantizeImage(
       }
     }
   } else {
-    // Standard mapping (nearest color per pixel)
+    // Standard mapping with CIELAB Delta-E (nearest perceptual color per pixel)
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
         const r = pixels[idx];
         const g = pixels[idx + 1];
         const b = pixels[idx + 2];
+        const origLab = rgbToLab(r, g, b);
 
-        // Find nearest palette color
+        const targetLab = rgbToLab(r, g, b);
         let minDistance = Infinity;
         let nearestColor = palette[0];
 
         for (const col of palette) {
-          const dr = r - col.r;
-          const dg = g - col.g;
-          const db = b - col.b;
-          const dist = dr * dr + dg * dg + db * db;
+          const colLab = getDmcLab(col);
+          const dL = targetLab[0] - colLab[0];
+          const da = targetLab[1] - colLab[1];
+          const db = targetLab[2] - colLab[2];
+
+          // Allow 3756 for eye whites (sclera) and neutral highlights while penalizing on warm skin
+          let skinWhitePenalty = 0;
+          const isNeutralEyeOrWhite = (origLab[1] < 10 && origLab[2] < 14) || (r > 185 && g > 185 && Math.abs(r - b) < 25);
+          if (col.code === '3756' && !isNeutralEyeOrWhite && r > 110 && r > b * 1.18 && g > b * 1.02) {
+            skinWhitePenalty = 3000;
+          }
+
+          const dist = dL * dL + da * da + db * db + skinWhitePenalty;
           if (dist < minDistance) {
             minDistance = dist;
             nearestColor = col;
@@ -406,5 +446,61 @@ export function quantizeImage(
     }
   }
 
-  return { pixels: result, palette };
+  // 3. Despreckle / Noise Cleanup Pass (Removes isolated 1x1 noise pixels on skin, face, and smooth areas)
+  const grid: DMCColor[][] = Array.from({ length: height }, () => new Array(width));
+  result.forEach(p => { grid[p.y][p.x] = p.dmc; });
+
+  const cleanedPixels = result.map(p => {
+    const { x, y } = p;
+    // Skip outer border pixels
+    if (x === 0 || x === width - 1 || y === 0 || y === height - 1) return p;
+
+    const current = grid[y][x];
+    const n1 = grid[y - 1][x];
+    const n2 = grid[y + 1][x];
+    const n3 = grid[y][x - 1];
+    const n4 = grid[y][x + 1];
+
+    const neighbors = [n1, n2, n3, n4];
+    const matchesCurrent = neighbors.filter(n => n.code === current.code).length;
+
+    // If pixel is an isolated single dot completely surrounded by different color neighbors
+    if (matchesCurrent === 0) {
+      const counts = new Map<string, { count: number; dmc: DMCColor }>();
+      for (const n of neighbors) {
+        const existing = counts.get(n.code);
+        if (existing) {
+          existing.count++;
+        } else {
+          counts.set(n.code, { count: 1, dmc: n });
+        }
+      }
+      let maxCount = 0;
+      let majorityDmc = current;
+      for (const entry of counts.values()) {
+        if (entry.count > maxCount) {
+          maxCount = entry.count;
+          majorityDmc = entry.dmc;
+        }
+      }
+      if (maxCount >= 2) {
+        return {
+          ...p,
+          r: majorityDmc.r,
+          g: majorityDmc.g,
+          b: majorityDmc.b,
+          dmc: majorityDmc
+        };
+      }
+    }
+
+    return p;
+  });
+
+  // 4. Return natural palette of colors assigned by CIELAB Delta-E matching
+  const paletteMap = new Map<string, DMCColor>();
+  cleanedPixels.forEach(p => paletteMap.set(p.dmc.code, p.dmc));
+
+  return { pixels: cleanedPixels, palette: Array.from(paletteMap.values()) };
 }
+
