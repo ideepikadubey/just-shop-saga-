@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  Sparkles, Upload, Download, RefreshCw, ZoomIn, ZoomOut, Minus, Plus, Grid, Layers, Eye, EyeOff, ArrowRightLeft
+  Sparkles, Upload, Download, RefreshCw, ZoomIn, ZoomOut, Minus, Plus, Grid, Layers, Eye, EyeOff, ArrowRightLeft, Check
 } from 'lucide-react';
 import { Project, GeneratedPattern, FilterType, DMCColor } from './types';
 import { quantizeImage } from './utils/quantizer';
@@ -691,6 +691,7 @@ export default function App() {
   const [viewerZoom, setViewerZoom] = useState(1);
   const [viewerPan, setViewerPan] = useState({ x: 0, y: 0 });
   const hasAutoZoomedRef = useRef(false);
+  const lastFittedSizeRef = useRef({ width: 0, height: 0 });
   const viewerTouchStartDistance = useRef<number>(0);
   const viewerTouchStartZoom = useRef<number>(1);
   const [selectedColorCode, setSelectedColorCode] = useState<string | null>(null);
@@ -700,6 +701,15 @@ export default function App() {
   const [smoothPreviewMode, setSmoothPreviewMode] = useState(false);
   const [completedCells, setCompletedCells] = useState<Set<string>>(new Set());
   const [isLoaded, setIsLoaded] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 0);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Memoized lookup of the active filter preset — replaces the half-dozen
   // repeated `FILTER_PRESETS.find(f => f.id === activeFilter) || ...`
@@ -1257,8 +1267,9 @@ export default function App() {
     if (!ctx) return;
 
     const rect = canvas.parentElement?.getBoundingClientRect();
-    const w = rect?.width || 800;
-    const h = rect?.height || 600;
+    const w = rect?.width || 0;
+    const h = rect?.height || 0;
+    if (w === 0 || h === 0) return;
     canvas.width = w;
     canvas.height = h;
 
@@ -1266,13 +1277,15 @@ export default function App() {
     const gridWidth = pattern.width * cellBaseSize;
     const gridHeight = pattern.height * cellBaseSize;
 
-    if (!hasAutoZoomedRef.current && w > 0 && h > 0) {
+    const sizeChanged = Math.abs(lastFittedSizeRef.current.width - w) > 8 || Math.abs(lastFittedSizeRef.current.height - h) > 8;
+    if ((!hasAutoZoomedRef.current || sizeChanged) && w > 0 && h > 0) {
       const fitZoomX = (w - 48) / gridWidth;
       const fitZoomY = (h - 48) / gridHeight;
       const fitZoom = Math.min(fitZoomX, fitZoomY);
       setViewerZoom(fitZoom);
       setViewerPan({ x: 0, y: 0 });
       hasAutoZoomedRef.current = true;
+      lastFittedSizeRef.current = { width: w, height: h };
       return;
     }
 
@@ -1438,7 +1451,8 @@ export default function App() {
 
     ctx.restore();
 
-    // Draw Minimap overlay
+    // Draw Minimap overlay (viewportWidth >= 640 only)
+    if (viewportWidth >= 640) {
     const miniW = 120;
     const miniH = 120 * (pattern.height / pattern.width);
     const miniX = canvas.width - miniW - 16;
@@ -1497,7 +1511,8 @@ export default function App() {
       Math.min(miniH, mapBottom - mapTop)
     );
 
-  }, [pattern, processedImageObj, viewerZoom, viewerPan, selectedColorCode, showSymbols, showCompleted, showGridLines, smoothPreviewMode, completedCells, selectedKit]);
+    }
+  }, [pattern, processedImageObj, viewerZoom, viewerPan, selectedColorCode, showSymbols, showCompleted, showGridLines, smoothPreviewMode, completedCells, selectedKit, viewportWidth]);
 
   // Shared helper for completing/uncompleting cells via click or touch tap
   const handleCellInteraction = (clientX: number, clientY: number) => {
@@ -2607,8 +2622,41 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex-1 w-full min-h-[380px] sm:min-h-[440px] h-[55vh] lg:h-full p-2 flex flex-col items-center justify-start select-none bg-slate-100/30 overflow-hidden">
+          <div className="flex-1 w-full aspect-[3/4] max-h-[55vh] sm:max-h-[65vh] lg:aspect-auto lg:h-full lg:max-h-none p-2 flex flex-col items-center justify-start select-none bg-slate-100/30 overflow-hidden">
             <div className="w-full h-full bg-white border border-slate-200 rounded-3xl relative overflow-hidden shadow-md flex items-center justify-center cursor-grab active:cursor-grabbing">
+              {/* Floating Vertical Toolbar (Icon Tabs) */}
+              {pattern && !isProcessing && (
+                <div className="absolute top-4 left-4 z-20 flex flex-col space-y-2 bg-white/90 backdrop-blur-md p-2 rounded-2xl border border-slate-200/80 shadow-lg select-none">
+                  <button
+                    onClick={() => setShowGridLines(!showGridLines)}
+                    className={`p-2.5 rounded-xl border transition cursor-pointer active:scale-95 flex items-center justify-center ${showGridLines ? 'bg-pink-500 border-pink-500 text-white shadow-md shadow-pink-500/20' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                    title="Toggle 10x10 Grid"
+                  >
+                    <Grid className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setShowSymbols(!showSymbols)}
+                    className={`p-2.5 rounded-xl border transition cursor-pointer active:scale-95 flex items-center justify-center ${showSymbols ? 'bg-pink-500 border-pink-500 text-white shadow-md shadow-pink-500/20' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                    title="Toggle Symbols/Numbers"
+                  >
+                    <Layers className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setSmoothPreviewMode(!smoothPreviewMode)}
+                    className={`p-2.5 rounded-xl border transition cursor-pointer active:scale-95 flex items-center justify-center ${smoothPreviewMode ? 'bg-pink-500 border-pink-500 text-white shadow-md shadow-pink-500/20' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                    title="Toggle Smooth View"
+                  >
+                    {smoothPreviewMode ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  </button>
+                  <button
+                    onClick={() => setShowCompleted(!showCompleted)}
+                    className={`p-2.5 rounded-xl border transition cursor-pointer active:scale-95 flex items-center justify-center ${showCompleted ? 'bg-pink-500 border-pink-500 text-white shadow-md shadow-pink-500/20' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                    title="Toggle Completed Progress"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
               {isProcessing ? (
                 <div className="text-center p-8 flex flex-col items-center space-y-4">
                   <RefreshCw className="h-10 w-10 text-pink-500 animate-spin" />
