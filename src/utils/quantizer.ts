@@ -363,12 +363,16 @@ export function quantizeImage(
           const origDb = origLab[2] - colLab[2];
           const huePenalty = (origDa * origDa + origDb * origDb) * 0.35;
 
-          // Prevent cool icy white DMC 3756 from creating white paint patch masks on warm skin tones,
-          // BUT ALLOW 3756 for eye whites (sclera), catchlights, teeth, and neutral white highlights!
+          // Prevent cool icy white DMC 3756 from creating white paint patch masks on warm skin tones
+          // when alternative skin highlight colors (3864 or 3855) are available in the palette.
+          // BUT ALLOW 3756 for eye whites (sclera), catchlights, teeth, and natural highlights!
           let skinWhitePenalty = 0;
-          const isNeutralEyeOrWhite = (origLab[1] < 10 && origLab[2] < 14) || (origR > 185 && origG > 185 && Math.abs(origR - origB) < 25);
-          if (col.code === '3756' && !isNeutralEyeOrWhite && origR > 110 && origR > origB * 1.18 && origG > origB * 1.02) {
-            skinWhitePenalty = 3000;
+          const hasAlternativeSkinHighlight = palette.some(c => c.code === '3864' || c.code === '3855');
+          if (hasAlternativeSkinHighlight) {
+            const isNeutralEyeOrWhite = (origLab[1] < 10 && origLab[2] < 14) || (origR > 185 && origG > 185 && Math.abs(origR - origB) < 25);
+            if (col.code === '3756' && !isNeutralEyeOrWhite && origR > 110 && origR > origB * 1.18 && origG > origB * 1.02) {
+              skinWhitePenalty = 3000;
+            }
           }
 
           const dist = dL * dL + da * da + db * db + huePenalty + skinWhitePenalty;
@@ -409,6 +413,7 @@ export function quantizeImage(
     }
   } else {
     // Standard mapping with CIELAB Delta-E (nearest perceptual color per pixel)
+    const hasAlternativeSkinHighlight = palette.some(c => c.code === '3864' || c.code === '3855');
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
@@ -427,11 +432,13 @@ export function quantizeImage(
           const da = targetLab[1] - colLab[1];
           const db = targetLab[2] - colLab[2];
 
-          // Allow 3756 for eye whites (sclera) and neutral highlights while penalizing on warm skin
+          // Allow 3756 for highlights while penalizing on warm skin only if alternative skin tones exist
           let skinWhitePenalty = 0;
-          const isNeutralEyeOrWhite = (origLab[1] < 10 && origLab[2] < 14) || (r > 185 && g > 185 && Math.abs(r - b) < 25);
-          if (col.code === '3756' && !isNeutralEyeOrWhite && r > 110 && r > b * 1.18 && g > b * 1.02) {
-            skinWhitePenalty = 3000;
+          if (hasAlternativeSkinHighlight) {
+            const isNeutralEyeOrWhite = (origLab[1] < 10 && origLab[2] < 14) || (r > 185 && g > 185 && Math.abs(r - b) < 25);
+            if (col.code === '3756' && !isNeutralEyeOrWhite && r > 110 && r > b * 1.18 && g > b * 1.02) {
+              skinWhitePenalty = 3000;
+            }
           }
 
           const dist = dL * dL + da * da + db * db + skinWhitePenalty;
@@ -456,6 +463,12 @@ export function quantizeImage(
     if (x === 0 || x === width - 1 || y === 0 || y === height - 1) return p;
 
     const current = grid[y][x];
+
+    // Protect fine black outlines (310) and pinpoint eye catchlights (3756) from being erased
+    if (current.code === '310' || current.code === '3756') {
+      return p;
+    }
+
     const n1 = grid[y - 1][x];
     const n2 = grid[y + 1][x];
     const n3 = grid[y][x - 1];

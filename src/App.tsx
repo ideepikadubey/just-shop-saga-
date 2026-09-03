@@ -136,7 +136,7 @@ const FILTER_PRESETS: FilterPreset[] = [
     algorithm: 'k-means',
     dither: false,
     isGrayscale: false,
-    allowedColors: ['209', '3843', '3840', '304', '977', '310', '3756']
+    allowedColors: ['310', '3756', '3843', '3840', '209', '304', '977']
   },
 
   // --- SUB-VARIANTS FOR FINE-TUNING ---
@@ -154,7 +154,7 @@ const FILTER_PRESETS: FilterPreset[] = [
     algorithm: 'k-means',
     dither: false,
     isGrayscale: false,
-    allowedColors: ['310', '3756', '3843', '3840', '304', '977', '433']
+    allowedColors: ['310', '3756', '3843', '3840', '209', '304', '977']
   },
   {
     id: 'pop-art-warm',
@@ -163,14 +163,14 @@ const FILTER_PRESETS: FilterPreset[] = [
     description: 'Posterized retro aesthetic emphasizing rich Dark Peach skin tones, Electric Blue reflections for highlights, and deep brown depth.',
     bestFor: 'Retro Posters, Warm Photography, Vintage Comic Art',
     brightness: 6,
-    contrast: 22,
+    contrast: 24,
     saturation: 35,
     exposure: 2,
-    sharpen: false,
+    sharpen: true,
     algorithm: 'k-means',
     dither: false,
     isGrayscale: false,
-    allowedColors: ['310', '3756', '3843', '3840', '304', '977', '433']
+    allowedColors: ['310', '3756', '3843', '3840', '209', '304', '977']
   },
   {
     id: 'premium-soft',
@@ -398,35 +398,16 @@ function applyFilterToPixels(
     }
 
     // Pop Art sub-filter enhancements
-    if (filterId.startsWith('pop-art')) {
-      const grayVal = 0.2989 * r + 0.587 * g + 0.114 * b;
-
-      if (grayVal < 65) {
-        r = 0;
-        g = 0;
-        b = 0;
-      } else if (grayVal > 180 || (r > 185 && g > 185 && b > 185)) {
-        r = Math.max(0, Math.min(255, r * 0.2 + 25));
-        g = Math.max(0, Math.min(255, g * 0.75 + 60));
-        b = Math.max(0, Math.min(255, b * 1.35 + 90));
-      } else if (r > b * 1.05 && grayVal >= 65) {
-        r = Math.min(255, Math.max(0, r * 1.1 + 15));
-        g = Math.min(255, Math.max(0, g * 0.75 + 10));
-        b = Math.max(0, Math.min(255, b * 0.45));
+    if (filterId === 'pop-art-electric') {
+      // Boost cool electric blue channel for high-energy backdrop and cool tones
+      if (b > r * 0.85 && b > 70) {
+        b = Math.min(255, b * 1.15 + 12);
+        g = Math.min(255, g * 1.05 + 5);
       }
-
-      if (filterId === 'pop-art-electric') {
-        if (grayVal >= 65 && (b >= r * 0.75 || (grayVal < 170 && !(r > b * 1.15 && g > b * 0.8)))) {
-          r = Math.max(0, r * 0.45);
-          g = Math.min(255, g * 0.85 + 40);
-          b = Math.min(255, b * 1.5 + 80);
-        }
-      } else if (filterId === 'pop-art-warm') {
-        if (grayVal >= 65 && r > b) {
-          r = Math.min(255, r * 1.15 + 15);
-          g = Math.min(255, g * 0.95 + 10);
-          b = Math.max(0, b * 0.5);
-        }
+    } else if (filterId === 'pop-art-warm') {
+      // Boost warm tones for rich retro poster warmth
+      if (r > b * 1.1 && r > 80) {
+        r = Math.min(255, r * 1.08 + 10);
       }
     }
 
@@ -622,6 +603,12 @@ const MiniGridPreview = React.memo(function MiniGridPreview({
       const preset = FILTER_PRESETS.find(p => p.id === filterId);
       if (preset) {
         applyFilterToPixels(imgData.data, previewWidth, previewHeight, filterId, preset);
+        tCtx.putImageData(imgData, 0, 0);
+        if (preset.sharpen) {
+          applySharpen(tCtx, previewWidth, previewHeight);
+          const sharpenedData = tCtx.getImageData(0, 0, previewWidth, previewHeight);
+          imgData.data.set(sharpenedData.data);
+        }
       }
 
       const allowedDMC = DMC_COLORS.filter(c => allowedColors.includes(c.code));
@@ -930,6 +917,9 @@ export default function App() {
       qCtx.imageSmoothingEnabled = true;
       qCtx.imageSmoothingQuality = 'high';
       qCtx.drawImage(filterCanvas, 0, 0, selectedKit.gridWidth, selectedKit.gridHeight);
+      if (sharpen) {
+        applySharpen(qCtx, selectedKit.gridWidth, selectedKit.gridHeight);
+      }
       const gridImgData = qCtx.getImageData(0, 0, selectedKit.gridWidth, selectedKit.gridHeight);
 
       const allowedColorsList = preset.allowedColors;
@@ -1986,19 +1976,45 @@ export default function App() {
   const renderChooseStyleScreen = () => {
     return (
       <div className="flex-1 w-full bg-slate-50 p-4 sm:p-6 overflow-y-auto">
-        <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8">
+        <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
 
-          <div className="border-b border-slate-200 pb-5 sm:pb-6 flex flex-col sm:flex-row items-center justify-between text-center sm:text-left gap-4">
-                {/* CARD 1: VINTAGE */}
+          {/* Header */}
+          <div className="border-b border-slate-200 pb-4 sm:pb-5 flex flex-col sm:flex-row items-center justify-between text-center sm:text-left gap-4">
+            <div>
+              <button
+                onClick={() => setActiveScreen('crop')}
+                className="inline-flex items-center space-x-1.5 text-xs font-extrabold uppercase tracking-wider text-slate-500 hover:text-slate-800 cursor-pointer transition duration-150 mb-1.5"
+              >
+                <span>← Back to Crop</span>
+              </button>
+              <h2 className="text-xl sm:text-2xl font-black bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent uppercase tracking-tight">
+                Choose Your Art Style
+              </h2>
+              <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+                4 Unique Aesthetic Styles • Select Your Preferred Diamond Art Guide
+              </p>
+            </div>
+            <div className="flex items-center space-x-2 bg-white border border-slate-200 px-3.5 py-1.5 rounded-full shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[11px] font-bold text-slate-700 font-mono">
+                Canvas: {selectedKit.widthCm}x{selectedKit.heightCm} cm ({selectedKit.gridWidth}x{selectedKit.gridHeight})
+              </span>
+            </div>
+          </div>
+
+          {/* 4 Style Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch">
+
+            {/* CARD 1: ORIGINAL MONOCHROME */}
             {(() => {
-              const preset = FILTER_PRESETS.find(p => p.id === vintageSubFilter) || FILTER_PRESETS[0];
+              const preset = FILTER_PRESETS[0]; // 'vintage'
               const allowedDMC = DMC_COLORS.filter(c => preset.allowedColors.includes(c.code));
               return (
                 <div className="bg-white border border-slate-200 rounded-3xl p-5 space-y-4 hover:border-pink-300 hover:shadow-lg transition duration-200 flex flex-col justify-between">
                   <div className="space-y-4">
                     <div className="text-center space-y-1">
-                      <div className="inline-flex items-center justify-center space-x-1.5 bg-pink-50 text-pink-600 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border border-pink-100">
-                        <span>Style 1: {preset.name}</span>
+                      <div className="inline-flex items-center justify-center space-x-1.5 bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border border-slate-200">
+                        <span>Style 1: Monochrome</span>
                       </div>
                       <h3 className="text-[11px] font-bold text-slate-700 leading-normal pt-1">
                         {preset.subtitle}
@@ -2020,7 +2036,7 @@ export default function App() {
                           customColorSwaps={customColorSwaps}
                         />
                         <div className="absolute bottom-2 right-2 bg-slate-900/90 text-white font-black text-[9px] px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md border border-white/20">
-                          {preset.id === 'vintage' ? 'ORIGINAL A4' : 'VINTAGE A4'}
+                          MONOCHROME A4
                         </div>
                       </div>
                     </div>
@@ -2031,7 +2047,7 @@ export default function App() {
                           Palette Used
                         </span>
                         <span className="text-[9px] font-extrabold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full border border-pink-100 font-mono">
-                          {preset.allowedColors.length} Colors
+                          {preset.allowedColors.length} Colors (Fixed)
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center justify-center gap-1.5 max-h-[140px] overflow-y-auto p-1 bg-slate-50/70 rounded-xl border border-slate-100">
@@ -2054,24 +2070,10 @@ export default function App() {
 
                     <div className="pt-2 border-t border-slate-100 space-y-1.5">
                       <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider block text-center">
-                        Vintage Style Options:
+                        Palette Type:
                       </span>
-                      <div className="flex items-center space-x-1">
-                        {[
-                          { id: 'vintage', label: 'Monochrome' },
-                          { id: 'vintage-classic', label: 'Sepia' }
-                        ].map(sub => (
-                          <button
-                            key={sub.id}
-                            onClick={() => setVintageSubFilter(sub.id as FilterType)}
-                            className={`flex-1 py-1.5 text-[9px] font-extrabold rounded-xl transition cursor-pointer text-center ${vintageSubFilter === sub.id
-                                ? 'bg-pink-600 text-white shadow-xs'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                              }`}
-                          >
-                            {sub.label}
-                          </button>
-                        ))}
+                      <div className="py-1.5 px-2 text-[9px] font-extrabold rounded-xl text-center bg-slate-100 text-slate-700">
+                        Pure Grayscale (5 DMC Tones)
                       </div>
                     </div>
 
@@ -2083,19 +2085,111 @@ export default function App() {
 
                   <button
                     onClick={() => {
-                      setActiveFilter(vintageSubFilter);
+                      setActiveFilter('vintage');
                       hasAutoZoomedRef.current = false;
                       setActiveScreen('grid-viewer');
                     }}
                     className="w-full py-3.5 rounded-2xl bg-pink-600 hover:bg-pink-500 text-white font-black text-xs uppercase tracking-wider transition duration-150 cursor-pointer active:scale-95 shadow-md shadow-pink-600/10 mt-2"
                   >
-                    Select {preset.name}
+                    Select Monochrome
                   </button>
                 </div>
               );
             })()}
 
-            {/* CARD 2: POP ART */}
+            {/* CARD 2: VINTAGE SEPIA */}
+            {(() => {
+              const preset = FILTER_PRESETS[1]; // 'vintage-classic'
+              const allowedDMC = DMC_COLORS.filter(c => preset.allowedColors.includes(c.code));
+              return (
+                <div className="bg-white border border-amber-200/80 rounded-3xl p-5 space-y-4 hover:border-amber-400 hover:shadow-lg transition duration-200 flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="text-center space-y-1">
+                      <div className="inline-flex items-center justify-center space-x-1.5 bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border border-amber-200/60">
+                        <span>Style 2: Vintage Sepia</span>
+                      </div>
+                      <h3 className="text-[11px] font-bold text-slate-700 leading-normal pt-1">
+                        {preset.subtitle}
+                      </h3>
+                      <p className="text-[10px] text-slate-500 leading-relaxed px-1">
+                        {preset.description}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col items-center space-y-2 bg-slate-50/80 p-3 rounded-2xl border border-slate-200">
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">
+                        Diamond Art Style Preview
+                      </span>
+                      <div className="w-[160px] h-[213px] rounded-2xl overflow-hidden border border-slate-200 shadow-md shrink-0 relative">
+                        <MiniGridPreview
+                          filterId={preset.id}
+                          allowedColors={preset.allowedColors}
+                          croppedImage={croppedImage}
+                          customColorSwaps={customColorSwaps}
+                        />
+                        <div className="absolute bottom-2 right-2 bg-amber-950/90 text-amber-200 font-black text-[9px] px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md border border-amber-400/30">
+                          VINTAGE SEPIA
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between px-1">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">
+                          Palette Used
+                        </span>
+                        <span className="text-[9px] font-extrabold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 font-mono">
+                          {preset.allowedColors.length} Colors (Fixed)
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-center gap-1.5 max-h-[140px] overflow-y-auto p-1 bg-slate-50/70 rounded-xl border border-slate-100">
+                        {allowedDMC.map((c, sIdx) => {
+                          const symbol = String(sIdx + 1);
+                          return (
+                            <div key={c.code} className="flex flex-col items-center bg-white border border-slate-200 p-1.5 rounded-xl min-w-[40px] shrink-0 text-center shadow-xs">
+                              <div className="w-4.5 h-4.5 rounded border border-slate-200 shadow-inner flex items-center justify-center" style={{ backgroundColor: c.hex }}>
+                                <span className="text-[8px] font-black text-slate-950 font-sans" style={{ color: (c.r * 0.299 + c.g * 0.587 + c.b * 0.114) > 128 ? '#000000' : '#ffffff' }}>
+                                  {symbol}
+                                </span>
+                              </div>
+                              <span className="text-[8px] font-black text-slate-800 mt-1 font-mono">#{c.code}</span>
+                              <span className="text-[6px] text-slate-500 font-semibold truncate max-w-[42px]">{c.name}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider block text-center">
+                        Palette Type:
+                      </span>
+                      <div className="py-1.5 px-2 text-[9px] font-extrabold rounded-xl text-center bg-amber-50 text-amber-800 border border-amber-200/60">
+                        Warm Sepia & Brown Tones
+                      </div>
+                    </div>
+
+                    <div className="text-[10px] text-slate-600 text-center leading-normal pt-2 border-t border-slate-100">
+                      <span className="text-slate-400 font-bold uppercase text-[9px]">Best For: </span>
+                      <span className="text-slate-800 font-bold">{preset.bestFor}</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setActiveFilter('vintage-classic');
+                      hasAutoZoomedRef.current = false;
+                      setActiveScreen('grid-viewer');
+                    }}
+                    className="w-full py-3.5 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black text-xs uppercase tracking-wider transition duration-150 cursor-pointer active:scale-95 shadow-md shadow-amber-600/20 mt-2"
+                  >
+                    Select Vintage Sepia
+                  </button>
+                </div>
+              );
+            })()}
+
+            {/* CARD 3: POP ART */}
             {(() => {
               const preset = FILTER_PRESETS.find(p => p.id === popArtSubFilter) || FILTER_PRESETS[2];
               const allowedDMC = DMC_COLORS.filter(c => preset.allowedColors.includes(c.code));
@@ -2104,7 +2198,7 @@ export default function App() {
                   <div className="space-y-4">
                     <div className="text-center space-y-1">
                       <div className="inline-flex items-center justify-center space-x-1.5 bg-pink-50 text-pink-600 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border border-pink-100">
-                        <span>Style 2: Pop Art</span>
+                        <span>Style 3: Pop Art</span>
                       </div>
                       <h3 className="text-[11px] font-bold text-slate-700 leading-normal pt-1">
                         {preset.subtitle}
@@ -2181,6 +2275,11 @@ export default function App() {
                         ))}
                       </div>
                     </div>
+
+                    <div className="text-[10px] text-slate-600 text-center leading-normal pt-2 border-t border-slate-100">
+                      <span className="text-slate-400 font-bold uppercase text-[9px]">Best For: </span>
+                      <span className="text-slate-800 font-bold">{preset.bestFor}</span>
+                    </div>
                   </div>
 
                   <button
@@ -2197,16 +2296,16 @@ export default function App() {
               );
             })()}
 
-            {/* CARD 3: PREMIUM */}
+            {/* CARD 4: PREMIUM */}
             {(() => {
-              const preset = FILTER_PRESETS.find(p => p.id === premiumSubFilter) || FILTER_PRESETS[4];
+              const preset = FILTER_PRESETS.find(p => p.id === premiumSubFilter) || FILTER_PRESETS[5];
               const allowedDMC = DMC_COLORS.filter(c => preset.allowedColors.includes(c.code));
               return (
-                <div className="bg-white border border-slate-200 rounded-3xl p-5 space-y-4 hover:border-pink-300 hover:shadow-lg transition duration-200 flex flex-col justify-between">
+                <div className="bg-white border border-purple-200/80 rounded-3xl p-5 space-y-4 hover:border-purple-400 hover:shadow-lg transition duration-200 flex flex-col justify-between">
                   <div className="space-y-4">
                     <div className="text-center space-y-1">
-                      <div className="inline-flex items-center justify-center space-x-1.5 bg-pink-50 text-pink-600 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border border-pink-100">
-                        <span>Style 3: Premium</span>
+                      <div className="inline-flex items-center justify-center space-x-1.5 bg-purple-50 text-purple-600 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border border-purple-100">
+                        <span>Style 4: Premium</span>
                       </div>
                       <h3 className="text-[11px] font-bold text-slate-700 leading-normal pt-1">
                         {preset.subtitle}
@@ -2220,13 +2319,16 @@ export default function App() {
                       <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">
                         Diamond Art Style Preview
                       </span>
-                      <div className="w-[160px] h-[213px] rounded-2xl overflow-hidden border border-slate-200 shadow-md shrink-0">
+                      <div className="w-[160px] h-[213px] rounded-2xl overflow-hidden border border-slate-200 shadow-md shrink-0 relative">
                         <MiniGridPreview
                           filterId={preset.id}
                           allowedColors={preset.allowedColors}
                           croppedImage={croppedImage}
                           customColorSwaps={customColorSwaps}
                         />
+                        <div className="absolute bottom-2 right-2 bg-purple-950/90 text-purple-200 font-black text-[9px] px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md border border-purple-400/30">
+                          PREMIUM A4
+                        </div>
                       </div>
                     </div>
 
@@ -2235,7 +2337,7 @@ export default function App() {
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">
                           Palette Used
                         </span>
-                        <span className="text-[9px] font-extrabold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full border border-pink-100 font-mono">
+                        <span className="text-[9px] font-extrabold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100 font-mono">
                           {preset.allowedColors.length} Colors (Full)
                         </span>
                       </div>
@@ -2278,6 +2380,11 @@ export default function App() {
                           </button>
                         ))}
                       </div>
+                    </div>
+
+                    <div className="text-[10px] text-slate-600 text-center leading-normal pt-2 border-t border-slate-100">
+                      <span className="text-slate-400 font-bold uppercase text-[9px]">Best For: </span>
+                      <span className="text-slate-800 font-bold">{preset.bestFor}</span>
                     </div>
                   </div>
 
@@ -2380,34 +2487,6 @@ export default function App() {
                     <span className="text-slate-400 font-bold">Best For: </span>
                     <span className="text-slate-700 font-semibold">{currentPreset.bestFor}</span>
                   </div>
-
-                  {(currentPreset.id === 'vintage' || currentPreset.id === 'vintage-classic') && (
-                    <div className="pt-2 border-t border-slate-100 space-y-1.5">
-                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider block">
-                        Switch Vintage Style:
-                      </span>
-                      <div className="flex items-center space-x-1">
-                        {[
-                          { id: 'vintage', label: 'Monochrome' },
-                          { id: 'vintage-classic', label: 'Sepia' }
-                        ].map(sub => (
-                          <button
-                            key={sub.id}
-                            onClick={() => {
-                              setActiveFilter(sub.id as FilterType);
-                              setVintageSubFilter(sub.id as FilterType);
-                            }}
-                            className={`flex-1 py-1.5 text-[9px] font-extrabold rounded-xl transition cursor-pointer text-center ${activeFilter === sub.id
-                                ? 'bg-pink-600 text-white shadow-xs'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                              }`}
-                          >
-                            {sub.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                   {currentPreset.id.startsWith('pop-art') && (
                     <div className="pt-2 border-t border-slate-100 space-y-1.5">
@@ -2685,11 +2764,12 @@ export default function App() {
           {/* Bottom Filter Previews Bar (Filtered strictly by selected category) */}
           <div className="bg-white/95 backdrop-blur-md border-t border-slate-200 p-2 px-4 flex items-center space-x-3 overflow-x-auto shrink-0 z-10">
             <span className="text-[9px] font-black uppercase tracking-wider text-pink-600 shrink-0">
-              {activeFilter === 'vintage' || activeFilter === 'vintage-classic' ? 'Vintage Filters:' : activeFilter.startsWith('pop-art') ? 'Pop Art Filters:' : 'Premium Filters:'}
+              {activeFilter === 'vintage' ? 'Monochrome Filter:' : activeFilter === 'vintage-classic' ? 'Sepia Filter:' : activeFilter.startsWith('pop-art') ? 'Pop Art Filters:' : 'Premium Filters:'}
             </span>
             <div className="flex items-center space-x-2">
               {FILTER_PRESETS.filter(p => {
-                if (activeFilter === 'vintage' || activeFilter === 'vintage-classic') return p.id === 'vintage' || p.id === 'vintage-classic';
+                if (activeFilter === 'vintage') return p.id === 'vintage';
+                if (activeFilter === 'vintage-classic') return p.id === 'vintage-classic';
                 if (activeFilter.startsWith('pop-art')) return p.id.startsWith('pop-art');
                 if (activeFilter.startsWith('premium')) return p.id.startsWith('premium');
                 return true;
