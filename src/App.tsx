@@ -7,7 +7,7 @@ import { quantizeImage } from './utils/quantizer';
 import { generatePDF } from './utils/pdfGenerator';
 import { DMC_COLORS } from './utils/dmc';
 import cropTipsImage from './imports/crop-tips.jpg';
-import dearGiftsLogo from './imports/dear-gifts-logo.png';
+import giftKaroLogo from './imports/gift-karo-logo.png';
 
 /**
  * ─────────────────────────────────────────────────────────────────────────
@@ -1682,7 +1682,7 @@ export default function App() {
     }
 
     const finalProject: Project = {
-      id: `deargifts-kit-${selectedKit.id}`,
+      id: `giftkaro-kit-${selectedKit.id}`,
       name: `${selectedKit.name} - ${activeFilterPreset.name}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -1734,8 +1734,8 @@ export default function App() {
           <div className="flex justify-center mb-2">
             <div className="p-4 sm:p-5 bg-white/90 rounded-3xl shadow-lg border border-purple-100/80 backdrop-blur-md transition-transform duration-300 hover:scale-105">
               <img
-                src={dearGiftsLogo}
-                alt="Dear Gifts Official Logo"
+                src={giftKaroLogo}
+                alt="Gift Karo Official Logo"
                 className="h-16 sm:h-24 w-auto object-contain max-w-[280px] sm:max-w-[360px]"
               />
             </div>
@@ -2871,12 +2871,12 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col selection:bg-pink-500 selection:text-white">
 
-      {/* Dear Gifts Brand Header */}
+      {/* Gift Karo Brand Header */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-purple-100/80 px-4 sm:px-6 py-3 flex items-center justify-between gap-3 shadow-xs">
         <div className="flex items-center space-x-3 min-w-0">
           <img
-            src={dearGiftsLogo}
-            alt="Dear Gifts Logo"
+            src={giftKaroLogo}
+            alt="Gift Karo Logo"
             className="h-8 sm:h-10 w-auto object-contain shrink-0 cursor-pointer"
             onClick={() => setActiveScreen('landing')}
           />

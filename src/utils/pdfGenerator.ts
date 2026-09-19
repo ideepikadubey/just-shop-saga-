@@ -19,10 +19,10 @@ export function generatePDF(project: Project): void {
   doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
   // Title
-  doc.setTextColor(255, 111, 97); // Dear Coral
+  doc.setTextColor(255, 111, 97); // Coral Accent
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(26);
-  doc.text('DEAR GIFTS DIAMOND PAINTING', pageWidth / 2, 40, { align: 'center' });
+  doc.text('GIFT KARO DIAMOND PAINTING', pageWidth / 2, 40, { align: 'center' });
   
   doc.setFontSize(14);
   doc.setFont('helvetica', 'normal');
