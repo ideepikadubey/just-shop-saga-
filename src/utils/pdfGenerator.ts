@@ -23,7 +23,7 @@ export function generatePDF(project: Project): void {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(26);
   doc.text('GIFT KARO DIAMOND PAINTING', pageWidth / 2, 40, { align: 'center' });
-  
+
   doc.setFontSize(14);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(214, 194, 236); // Lavender Purple tint
@@ -33,7 +33,7 @@ export function generatePDF(project: Project): void {
   doc.setDrawColor(51, 65, 85);
   doc.setLineWidth(1);
   doc.rect(40, 65, pageWidth - 80, 110);
-  
+
   try {
     // Original image preview
     doc.addImage(project.processedImage || project.originalImage, 'JPEG', 41, 66, pageWidth - 82, 108);
@@ -52,6 +52,7 @@ export function generatePDF(project: Project): void {
   doc.text(`Grid Resolution: ${pattern.width} x ${pattern.height} pixels`, 40, 225);
   const totalBeads = pattern.width * pattern.height;
   let recommendedPack = Math.ceil((totalBeads * 1.04) / 500) * 500;
+  if (pattern.width === 120 && pattern.height === 160) recommendedPack = 20000;
   if (pattern.width === 115 && pattern.height === 155) recommendedPack = 18500;
   if (pattern.width === 107 && pattern.height === 143) recommendedPack = 16000;
   if (pattern.width === 143 && pattern.height === 179) recommendedPack = 26500;
@@ -60,7 +61,7 @@ export function generatePDF(project: Project): void {
 
   doc.text(`Total Beads Required (Actual): ${totalBeads.toLocaleString()} pcs`, 40, 235);
   doc.text(`Recommended Production Pack: ${recommendedPack.toLocaleString()} pcs (incl. 3-5% extra)`, 40, 245);
-  
+
   // Footer
   doc.setFontSize(10);
   doc.setTextColor(100, 116, 139);
@@ -69,12 +70,12 @@ export function generatePDF(project: Project): void {
   // --- PAGE 2: SYMBOL & COLOR LEGEND ---
   doc.addPage();
   doc.setFillColor(255, 255, 255);
-  
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
   doc.setTextColor(15, 23, 42);
   doc.text('COLOR LEGEND', 20, 25);
-  
+
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 116, 139);
@@ -84,7 +85,7 @@ export function generatePDF(project: Project): void {
   let yPos = 45;
   doc.setFillColor(241, 245, 249);
   doc.rect(20, yPos, pageWidth - 40, 10, 'F');
-  
+
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(51, 65, 85);
   doc.text('Symbol', 25, yPos + 7);
@@ -99,16 +100,16 @@ export function generatePDF(project: Project): void {
 
   for (let i = 0; i < pattern.palette.length; i++) {
     const item = pattern.palette[i];
-    
+
     // Page break if table exceeds page height
     if (yPos > pageHeight - 30) {
       doc.addPage();
       yPos = 25;
-      
+
       // Reprint headers on new page
       doc.setFillColor(241, 245, 249);
       doc.rect(20, yPos, pageWidth - 40, 10, 'F');
-      
+
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(51, 65, 85);
       doc.text('Symbol', 25, yPos + 7);
@@ -131,12 +132,12 @@ export function generatePDF(project: Project): void {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.text(item.symbol, 28, yPos + 7);
-    
+
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.text(item.code, 50, yPos + 7);
     doc.text(item.name, 80, yPos + 7);
-    
+
     // Draw color preview box
     doc.setFillColor(item.r, item.g, item.b);
     doc.rect(135, yPos + 2, 10, 6, 'F');
@@ -155,11 +156,12 @@ export function generatePDF(project: Project): void {
   const sectorSize = 40;
   const numSectorsX = Math.ceil(pattern.width / sectorSize);
   const numSectorsY = Math.ceil(pattern.height / sectorSize);
+  const boardNumCols = Math.ceil(pattern.width / 10);
 
   for (let sy = 0; sy < numSectorsY; sy++) {
     for (let sx = 0; sx < numSectorsX; sx++) {
       doc.addPage();
-      
+
       const startX = sx * sectorSize;
       const startY = sy * sectorSize;
       const endX = Math.min(startX + sectorSize, pattern.width);
@@ -173,12 +175,51 @@ export function generatePDF(project: Project): void {
       doc.setFontSize(14);
       doc.setTextColor(15, 23, 42);
       const sectorLabel = `Sector: Row ${sy + 1}, Col ${sx + 1}`;
-      doc.text(`GRID MAP - ${sectorLabel}`, 20, 20);
-      
+      doc.text(`GRID MAP - ${sectorLabel}`, 20, 18);
+
+      // Calculate which Board Blocks (1 to 192) are covered on this sheet
+      // Col 12 has 5 drills (x=110..115), Row 16 has 5 drills (y=150..155)
+      const colBoundaries: number[] = [];
+      for (let x = 0; x < pattern.width; x += 10) colBoundaries.push(x);
+      colBoundaries.push(pattern.width);
+
+      const rowBoundaries: number[] = [];
+      for (let y = 0; y < pattern.height; y += 10) rowBoundaries.push(y);
+      rowBoundaries.push(pattern.height);
+
+      const numBCols = colBoundaries.length - 1; // 12
+      const numBRows = rowBoundaries.length - 1; // 16
+
+      const coveredBlocks: string[] = [];
+      for (let br = 0; br < numBRows; br++) {
+        const bStartY = rowBoundaries[br];
+        const bEndY = rowBoundaries[br + 1];
+        if (bEndY <= startY || bStartY >= endY) continue;
+
+        let rowMin = -1;
+        let rowMax = -1;
+        for (let bc = 0; bc < numBCols; bc++) {
+          const bStartX = colBoundaries[bc];
+          const bEndX = colBoundaries[bc + 1];
+          if (bEndX <= startX || bStartX >= endX) continue;
+
+          const bNum = br * numBCols + bc + 1;
+          if (rowMin === -1) rowMin = bNum;
+          rowMax = bNum;
+        }
+        if (rowMin !== -1) {
+          coveredBlocks.push(rowMin === rowMax ? `#${rowMin}` : `#${rowMin}–#${rowMax}`);
+        }
+      }
+
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Rows: ${startY + 1} to ${endY}, Cols: ${startX + 1} to ${endX}`, 20, 25);
+      doc.setFontSize(8.5);
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Rows: ${startY + 1} to ${endY}, Cols: ${startX + 1} to ${endX}`, 20, 24);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 58, 138);
+      doc.text(`Physical Board Blocks Covered: ${coveredBlocks.join(', ')}`, 20, 29);
 
       // We have about 170mm x 170mm for the grid.
       // Let's compute grid cell size based on maximum cell dimension.
@@ -209,47 +250,82 @@ export function generatePDF(project: Project): void {
           const cellX = gridLeft + c * cellSize;
           const cellY = gridTop + r * cellSize;
 
-          // Draw cell background (very light color matching or just white)
           if (colorInfo) {
-            // Draw colored cell background with thin border
             doc.setFillColor(colorInfo.r, colorInfo.g, colorInfo.b);
             doc.setDrawColor(180, 180, 180);
             doc.setLineWidth(0.05);
             doc.rect(cellX, cellY, cellSize, cellSize, 'FD');
 
-            // Draw symbol centered (adapting text color to background luminance for high contrast)
+            // Responsive font size for 1 vs 2 digit symbols to avoid cell border clipping
+            const fontSize = colorInfo.symbol.length > 1 ? cellSize * 1.35 : cellSize * 1.7;
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(cellSize * 1.8); // Scale font size to cell size
-            
-            const luminance = (colorInfo.r * 0.299 + colorInfo.g * 0.587 + colorInfo.b * 0.114);
-            if (luminance > 128) {
-              doc.setTextColor(30, 41, 59); // Dark symbol on light background
+            doc.setFontSize(fontSize);
+
+            // Optimal human-eye contrast for PDF printouts:
+            // Saturated colors like Red (#304), Dark Pewter (#413), Black (#310), Medium Brown (#433),
+            // Lavender Dark (#209), and Electric Blue (#3843) get crisp White text.
+            // Light colors (Baby Blue #3756, Light Blue #3840, Autumn Gold #3855, Golden Brown #977, Light Skin #3864) get Dark Slate text.
+            const isDarkPurple = colorInfo.r > 130 && colorInfo.b > 140 && colorInfo.g < 130;
+            const isRed = colorInfo.r > 150 && colorInfo.g < 80 && colorInfo.b < 80;
+            const yiq = (colorInfo.r * 299 + colorInfo.g * 587 + colorInfo.b * 114) / 1000;
+
+            const isDarkText = (isDarkPurple || isRed) ? false : yiq > 145;
+            if (isDarkText) {
+              doc.setTextColor(15, 23, 42); // Dark slate
             } else {
-              doc.setTextColor(255, 255, 255); // Light symbol on dark background
+              doc.setTextColor(255, 255, 255); // Crisp white
             }
-            doc.text(colorInfo.symbol, cellX + cellSize / 2, cellY + cellSize / 2 + (cellSize / 3.5), { align: 'center' });
+            const yOffset = colorInfo.symbol.length > 1 ? cellSize * 0.24 : cellSize * 0.28;
+            doc.text(colorInfo.symbol, cellX + cellSize / 2, cellY + cellSize / 2 + yOffset, { align: 'center' });
           }
         }
       }
 
-      // Draw vertical thick lines every 10 cells
+      // Draw vertical thick lines for block boundaries
       doc.setDrawColor(30, 41, 59);
       doc.setLineWidth(0.2);
-      for (let c = 0; c <= sectorW; c += 10) {
-        const lineX = gridLeft + c * cellSize;
-        doc.line(lineX, gridTop, lineX, gridTop + sectorH * cellSize);
+      for (const gx of colBoundaries) {
+        if (gx > startX && gx < endX) {
+          const lineX = gridLeft + (gx - startX) * cellSize;
+          doc.line(lineX, gridTop, lineX, gridTop + sectorH * cellSize);
+        }
       }
 
-      // Draw horizontal thick lines every 10 cells
-      for (let r = 0; r <= sectorH; r += 10) {
-        const lineY = gridTop + r * cellSize;
-        doc.line(gridLeft, lineY, gridLeft + sectorW * cellSize, lineY);
+      // Draw horizontal thick lines for block boundaries
+      for (const gy of rowBoundaries) {
+        if (gy > startY && gy < endY) {
+          const lineY = gridTop + (gy - startY) * cellSize;
+          doc.line(gridLeft, lineY, gridLeft + sectorW * cellSize, lineY);
+        }
       }
 
       // Draw outer sector border and coordinates indices
       doc.setDrawColor(15, 23, 42);
       doc.setLineWidth(0.3);
       doc.rect(gridLeft, gridTop, sectorW * cellSize, sectorH * cellSize, 'S');
+
+      // Label each block with its Physical Board Number
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6);
+      for (let br = 0; br < numBRows; br++) {
+        const bStartY = rowBoundaries[br];
+        const bEndY = rowBoundaries[br + 1];
+        if (bEndY <= startY || bStartY >= endY) continue;
+
+        for (let bc = 0; bc < numBCols; bc++) {
+          const bStartX = colBoundaries[bc];
+          const bEndX = colBoundaries[bc + 1];
+          if (bEndX <= startX || bStartX >= endX) continue;
+
+          const bNum = br * numBCols + bc + 1;
+          const isBlue = (br + bc) % 2 === 0;
+          const cellRelX = Math.max(0, bStartX - startX);
+          const cellRelY = Math.max(0, bStartY - startY);
+
+          doc.setTextColor(isBlue ? 30 : 100, isBlue ? 58 : 116, isBlue ? 138 : 139);
+          doc.text(`[Block #${bNum}]`, gridLeft + cellRelX * cellSize + 1.2, gridTop + cellRelY * cellSize + 2.8);
+        }
+      }
 
       // Grid labels (every 10 columns/rows)
       doc.setFont('helvetica', 'normal');
@@ -260,14 +336,14 @@ export function generatePDF(project: Project): void {
       for (let c = 0; c < sectorW; c += 10) {
         if (c === 0 && startX === 0) continue;
         const cellX = gridLeft + c * cellSize;
-        doc.text(`${startX + c}`, cellX + cellSize/2, gridTop - 2, { align: 'center' });
+        doc.text(`${startX + c}`, cellX + cellSize / 2, gridTop - 2, { align: 'center' });
       }
 
       // Row labels
       for (let r = 0; r < sectorH; r += 10) {
         if (r === 0 && startY === 0) continue;
         const cellY = gridTop + r * cellSize;
-        doc.text(`${startY + r}`, gridLeft - 2, cellY + cellSize/2 + 2, { align: 'right' });
+        doc.text(`${startY + r}`, gridLeft - 2, cellY + cellSize / 2 + 2, { align: 'right' });
       }
     }
   }

@@ -358,14 +358,13 @@ export function quantizeImage(
           const db = targetLab[2] - colLab[2];
 
           // Hue/Chroma mismatch penalty against original un-dithered pixel
-          // Prevents extreme dither spots (e.g. blue/purple/red dots on beige skin)
+          // Prevents extreme stray spots and keeps skin, clothing, and background colors clean and cohesive
           const origDa = origLab[1] - colLab[1];
           const origDb = origLab[2] - colLab[2];
-          const huePenalty = (origDa * origDa + origDb * origDb) * 0.35;
+          const huePenalty = (origDa * origDa + origDb * origDb) * 0.16;
 
           // Prevent cool icy white DMC 3756 from creating white paint patch masks on warm skin tones
           // when alternative skin highlight colors (3864 or 3855) are available in the palette.
-          // BUT ALLOW 3756 for eye whites (sclera), catchlights, teeth, and natural highlights!
           let skinWhitePenalty = 0;
           const hasAlternativeSkinHighlight = palette.some(c => c.code === '3864' || c.code === '3855');
           if (hasAlternativeSkinHighlight) {
@@ -375,7 +374,46 @@ export function quantizeImage(
             }
           }
 
-          const dist = dL * dL + da * da + db * db + huePenalty + skinWhitePenalty;
+          // Feature preservation bonuses:
+          let darkOutlineBonus = 0;
+          if (origLab[0] < 45 && (col.code === '310' || col.code === '413')) {
+            darkOutlineBonus = -500;
+          }
+
+          let highlightBonus = 0;
+          const isWhiteHighlight = (origR > 185 && origG > 185 && origB > 185) || (origLab[0] > 75 && Math.abs(origLab[1]) < 12 && Math.abs(origLab[2]) < 15);
+          if (isWhiteHighlight && col.code === '3756') {
+            highlightBonus = -450;
+          }
+
+          let redLipBonus = 0;
+          let skinRedPenalty = 0;
+          const isTrueRedLip = origR > 140 && (origR - origG) > 50 && (origR - origB) > 50 && origG < origR * 0.70 && origB < origR * 0.70;
+          const isSkinTone = origR > 85 && origR > origG && origG > origB && (origR - origB) > 18;
+
+          if (col.code === '304') {
+            if (isTrueRedLip) {
+              redLipBonus = -800;
+            } else if (isSkinTone) {
+              skinRedPenalty = 8000; // Strictly avoid red on skin
+            }
+          }
+
+          let cartoonSkinBonus = 0;
+          if (isSkinTone && !isTrueRedLip) {
+            if (col.code === '977') {
+              cartoonSkinBonus = -650;
+            } else if (col.code === '3855' || col.code === '3864') {
+              cartoonSkinBonus = -500;
+            }
+          }
+
+          let blueBonus = 0;
+          if ((col.code === '3843' || col.code === '3840') && origB > origR * 1.12 && origB > 75) {
+            blueBonus = -400;
+          }
+
+          const dist = dL * dL + da * da + db * db + huePenalty + skinWhitePenalty + skinRedPenalty + darkOutlineBonus + highlightBonus + redLipBonus + cartoonSkinBonus + blueBonus;
           if (dist < minDistance) {
             minDistance = dist;
             nearestColor = col;
@@ -386,10 +424,9 @@ export function quantizeImage(
         result.push({ x, y, r: nearestColor.r, g: nearestColor.g, b: nearestColor.b, dmc: nearestColor });
 
         // Adaptive Error Diffusion:
-        // Preserve crisp outlines for dark facial features (eyes, pupils, eyelashes, eyebrows) and red lips (low error bleed),
-        // while diffusing continuous smooth gradients across skin tones (cheeks, forehead, chin) to eliminate pop-in patches.
-        const isFacialFeature = (origLab[0] < 38) || (origR > 130 && origR > origG * 1.30 && origR > origB * 1.30);
-        const errorFactor = isFacialFeature ? 0.20 : 0.55;
+        // Razor-sharp outlines for deep dark features and lips while smooth continuous gradients across background
+        const isFacialFeature = (origLab[0] < 45) || (origR > 120 && origR > origG * 1.25 && origR > origB * 1.25);
+        const errorFactor = isFacialFeature ? 0.25 : 0.75;
 
         const errR = (oldR - nearestColor.r) * errorFactor;
         const errG = (oldG - nearestColor.g) * errorFactor;
@@ -432,6 +469,64 @@ export function quantizeImage(
           const da = targetLab[1] - colLab[1];
           const db = targetLab[2] - colLab[2];
 
+          // Feature preservation:
+          // 1. Crisp dark facial outlines and eye features
+          let darkOutlineBonus = 0;
+          const origLuminance = origLab[0];
+          if (origLuminance < 45 && (col.code === '310' || col.code === '413')) {
+            darkOutlineBonus = -600; // Lock in crisp black/dark outlines for eyelashes, pupils, eyebrows
+          }
+
+          // 2. Crisp teeth and eye-white (sclera) highlights
+          let highlightBonus = 0;
+          const isWhiteHighlight = (r > 185 && g > 185 && b > 185) || (origLab[0] > 75 && Math.abs(origLab[1]) < 12 && Math.abs(origLab[2]) < 15);
+          if (isWhiteHighlight && col.code === '3756') {
+            highlightBonus = -500; // Pop out bright teeth and eye catchlights
+          }
+
+          // 3. Strict Red Restriction: DMC 304 ONLY for true lips and saturated crimson objects;
+          // Heavy penalty on skin tones to avoid any red bleeding into the face/skin!
+          let redLipBonus = 0;
+          let skinRedPenalty = 0;
+          const isTrueRedLip = r > 140 && (r - g) > 50 && (r - b) > 50 && g < r * 0.70 && b < r * 0.70;
+          const isSkinTone = (r > 80 && r > g && g > b && (r - b) > 18) || (origLab[1] > 12 && origLab[2] > 14);
+
+          if (col.code === '304') {
+            if (isTrueRedLip) {
+              redLipBonus = -900; // Lock in vibrant red lips
+            } else if (isSkinTone) {
+              skinRedPenalty = 9999; // STRICTLY block red on skin, cheeks, forehead, nose, neck
+            } else if (r < 155 || r < g * 1.5 || r < b * 1.5) {
+              skinRedPenalty = 3500; // Strongly avoid red everywhere unless genuinely bright crimson
+            }
+          }
+
+          // 4. Cartoon Skin Cel-Shading Affinity (Golden Ochre #977 & Autumn Gold #3855)
+          let cartoonSkinBonus = 0;
+          if (isSkinTone && !isTrueRedLip) {
+            if (col.code === '977') {
+              cartoonSkinBonus = -700; // Lock in warm, radiant cartoon base skin
+            } else if (col.code === '3855' || col.code === '3864') {
+              cartoonSkinBonus = -550; // Cartoon skin highlight
+            } else if (col.code === '433' || col.code === '3862') {
+              cartoonSkinBonus = -400; // Cartoon skin shadow
+            }
+          }
+
+          // 5. Electric Blue & Light Blue Accents (DMC 3843 & 3840)
+          let blueBonus = 0;
+          if (col.code === '3843' && b > r * 1.12 && b > 75) {
+            blueBonus = -500; // Pop out vivid electric blue
+          } else if (col.code === '3840' && b > r * 1.08 && b > 140) {
+            blueBonus = -400; // Pop out sky / light blue highlights
+          }
+
+          // 6. Lavender Accent (DMC 209)
+          let lavenderBonus = 0;
+          if (col.code === '209' && r > g && b > g && (r + b) > g * 1.35) {
+            lavenderBonus = -450; // Pop out artistic lavender accents
+          }
+
           // Allow 3756 for highlights while penalizing on warm skin only if alternative skin tones exist
           let skinWhitePenalty = 0;
           if (hasAlternativeSkinHighlight) {
@@ -441,7 +536,7 @@ export function quantizeImage(
             }
           }
 
-          const dist = dL * dL + da * da + db * db + skinWhitePenalty;
+          const dist = dL * dL + da * da + db * db + skinWhitePenalty + skinRedPenalty + darkOutlineBonus + highlightBonus + redLipBonus + cartoonSkinBonus + blueBonus + lavenderBonus;
           if (dist < minDistance) {
             minDistance = dist;
             nearestColor = col;
@@ -453,61 +548,89 @@ export function quantizeImage(
     }
   }
 
-  // 3. Despreckle / Noise Cleanup Pass (Removes isolated 1x1 noise pixels on skin, face, and smooth areas)
-  const grid: DMCColor[][] = Array.from({ length: height }, () => new Array(width));
-  result.forEach(p => { grid[p.y][p.x] = p.dmc; });
+  // 3. Multi-Pass Spatial Regularization & Despeckle Pass
+  // Consolidates isolated 1-2 pixel noise on skin, face, clothing, and background into clean,
+  // bold planes of color (like authentic silk-screen and poster art), while strictly protecting
+  // fine black outlines (310), dark pewter (413), catchlights (3756), and crimson lips (304).
+  let currentGrid: DMCColor[][] = Array.from({ length: height }, () => new Array(width));
+  result.forEach(p => { currentGrid[p.y][p.x] = p.dmc; });
+
+  const runSmoothingPass = (grid: DMCColor[][], maxAllowedSame: number): DMCColor[][] => {
+    const nextGrid: DMCColor[][] = grid.map(row => [...row]);
+
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const cur = grid[y][x];
+
+        // Always protect fine black outlines (310), dark gray (413), and pinpoint catchlights (3756)
+        if (cur.code === '310' || cur.code === '413' || cur.code === '3756') {
+          continue;
+        }
+
+        // Count occurrences of colors in 3x3 window (8 neighbors)
+        const counts = new Map<string, { count: number; dmc: DMCColor }>();
+        let matchingSelfCount = 0;
+
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const neighbor = grid[y + dy][x + dx];
+            if (neighbor.code === cur.code) {
+              matchingSelfCount++;
+            }
+            const existing = counts.get(neighbor.code);
+            if (existing) {
+              existing.count++;
+            } else {
+              counts.set(neighbor.code, { count: 1, dmc: neighbor });
+            }
+          }
+        }
+
+        // If the current pixel is isolated (fewer than maxAllowedSame neighbors matching it in 3x3 window)
+        if (matchingSelfCount <= maxAllowedSame) {
+          let maxCount = 0;
+          let majorityDmc = cur;
+          for (const entry of counts.values()) {
+            if (entry.count > maxCount) {
+              maxCount = entry.count;
+              majorityDmc = entry.dmc;
+            }
+          }
+          // Adopt the majority neighbor if strongly supported (>= 5 out of 8 neighbors when maxAllowedSame >= 2, or >= 4 otherwise)
+          const threshold = maxAllowedSame >= 2 ? 5 : 4;
+          if (maxCount >= threshold) {
+            nextGrid[y][x] = majorityDmc;
+          }
+        }
+      }
+    }
+    return nextGrid;
+  };
+
+  // Spatial Regularization / Despeckling for clean silk-screen pop art & posterized finishing:
+  // Eliminates isolated 1-2 pixel noise while strictly protecting outlines (310, 413), catchlights (3756), and lips (304).
+  if (!dither) {
+    // Pass 1: Clean isolated 1x1 noise (matchingSelfCount === 0)
+    currentGrid = runSmoothingPass(currentGrid, 0);
+    // Pass 2: Clean 2-pixel noisy fragments on smooth areas (matchingSelfCount <= 1)
+    currentGrid = runSmoothingPass(currentGrid, 1);
+    // Pass 3: Polish boundaries on large solid fields (matchingSelfCount <= 2 when majority has >= 5)
+    currentGrid = runSmoothingPass(currentGrid, 2);
+  } else if (palette.length > 7) {
+    // When dithering with rich color palettes, run Pass 1 to prevent isolated single-pixel chromatic grain on skin
+    currentGrid = runSmoothingPass(currentGrid, 0);
+  }
 
   const cleanedPixels = result.map(p => {
-    const { x, y } = p;
-    // Skip outer border pixels
-    if (x === 0 || x === width - 1 || y === 0 || y === height - 1) return p;
-
-    const current = grid[y][x];
-
-    // Protect fine black outlines (310) and pinpoint eye catchlights (3756) from being erased
-    if (current.code === '310' || current.code === '3756') {
-      return p;
-    }
-
-    const n1 = grid[y - 1][x];
-    const n2 = grid[y + 1][x];
-    const n3 = grid[y][x - 1];
-    const n4 = grid[y][x + 1];
-
-    const neighbors = [n1, n2, n3, n4];
-    const matchesCurrent = neighbors.filter(n => n.code === current.code).length;
-
-    // If pixel is an isolated single dot completely surrounded by different color neighbors
-    if (matchesCurrent === 0) {
-      const counts = new Map<string, { count: number; dmc: DMCColor }>();
-      for (const n of neighbors) {
-        const existing = counts.get(n.code);
-        if (existing) {
-          existing.count++;
-        } else {
-          counts.set(n.code, { count: 1, dmc: n });
-        }
-      }
-      let maxCount = 0;
-      let majorityDmc = current;
-      for (const entry of counts.values()) {
-        if (entry.count > maxCount) {
-          maxCount = entry.count;
-          majorityDmc = entry.dmc;
-        }
-      }
-      if (maxCount >= 2) {
-        return {
-          ...p,
-          r: majorityDmc.r,
-          g: majorityDmc.g,
-          b: majorityDmc.b,
-          dmc: majorityDmc
-        };
-      }
-    }
-
-    return p;
+    const dmc = currentGrid[p.y][p.x];
+    return {
+      ...p,
+      r: dmc.r,
+      g: dmc.g,
+      b: dmc.b,
+      dmc
+    };
   });
 
   // 4. Return natural palette of colors assigned by CIELAB Delta-E matching

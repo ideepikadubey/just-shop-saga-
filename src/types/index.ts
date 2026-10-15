@@ -13,11 +13,9 @@ export type GridResolutionPreset = 'low' | 'medium' | 'high' | 'ultra';
 export type FilterType = 
   | 'vintage' 
   | 'vintage-classic'
-  | 'pop-art' 
-  | 'pop-art-electric' 
-  | 'pop-art-warm' 
-  | 'premium-soft' 
-  | 'premium-contrast';
+  | 'pop-art'
+  | 'pop-art-electric'
+  | 'pop-art-warm';
 
 export interface EditorSettings {
   brightness: number; // -100 to 100

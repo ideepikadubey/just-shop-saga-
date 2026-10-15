@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  Sparkles, Upload, Download, RefreshCw, ZoomIn, ZoomOut, Minus, Plus, Grid, Layers, Eye, EyeOff, ArrowRightLeft, Check
+  Sparkles, Upload, Download, RefreshCw, ZoomIn, ZoomOut, Minus, Plus, Grid, Layers, Eye, EyeOff, ArrowRightLeft, Check, AlertTriangle
 } from 'lucide-react';
 import { Project, GeneratedPattern, FilterType, DMCColor } from './types';
 import { quantizeImage } from './utils/quantizer';
@@ -30,10 +30,6 @@ import giftKaroLogo from './imports/gift-karo-logo.png';
  *    debounced before hitting IndexedDB, and the pattern-regeneration
  *    effect is debounced so quickly clicking through several color swaps
  *    doesn't trigger a full re-quantization per click.
- * 6. Fixed a dead "Master" premium sub-filter button that pointed at a
- *    preset id ('premium') which doesn't exist in FILTER_PRESETS — selecting
- *    it silently fell back to the vintage preset while still rendering as
- *    "selected", which was a confusing latent bug.
  * ─────────────────────────────────────────────────────────────────────────
  */
 
@@ -64,8 +60,8 @@ const DIAMOND_ART_KITS: DiamondArtKit[] = [
     gridHeight: 155,
     maxColors: 13,
     diamondSizeMm: 2.5,
-    description: '2.5 mm square diamonds • 115×155 grid with 10×10 sections • 17,825 drills.',
-    allowedColors: ['304', '209', '3840', '3843', '3756', '3855', '977', '433', '3864', '3862', '640', '413', '310']
+    description: '2.5 mm square diamonds • 115×155 grid (192 blocks: 11×10 + 5 cols, 15×10 + 5 rows) • 17,825 drills.',
+    allowedColors: ['310', '413', '304', '3843', '433', '977', '3855', '209', '3840', '3756', '640', '3864', '3862']
   }
 ];
 
@@ -100,7 +96,7 @@ const FILTER_PRESETS: FilterPreset[] = [
     exposure: 0,
     sharpen: true,
     algorithm: 'k-means',
-    dither: false,
+    dither: true,
     isGrayscale: true,
     allowedColors: ['310', '413', '640', '3864', '3756']
   },
@@ -116,95 +112,60 @@ const FILTER_PRESETS: FilterPreset[] = [
     exposure: 0,
     sharpen: true,
     algorithm: 'k-means',
-    dither: false,
+    dither: true,
     isGrayscale: false,
     allowedColors: ['310', '413', '640', '3864', '3756', '433', '977']
   },
 
-  // --- 3. POP-ART A4 (Vivid Pop Art Poster) ---
+  // --- 3. POP ART FILTERS (7-Color Comic Silk-Screen & 13-Color Full Kit) ---
   {
     id: 'pop-art',
-    name: 'Pop Art Poster',
-    subtitle: 'Vibrant Dark Peach & Blue Reflections | Fixed 7 Colors',
-    description: 'Bold Andy Warhol posterized aesthetic featuring rich Dark Peach skin tones, Electric Blue reflections for highlights, vibrant Magenta suit, and sharp outlines.',
-    bestFor: 'Pop Art Fans, Vibrant Gifts, Modern Graphic Decor',
-    brightness: 8,
-    contrast: 30,
-    saturation: 45,
-    exposure: 2,
+    name: 'Pop Art Classic',
+    subtitle: '7-Color Comic Silk-Screen | Electric Blue & Warm Gold',
+    description: 'Iconic silk-screen pop art portrait featuring bold black inking, radiant golden skin, electric blue & lavender backdrop planes, and vivid crimson accents.',
+    bestFor: 'Pop Art Fans, Colorful Portraits, Modern Decor',
+    brightness: 2,
+    contrast: 18,
+    saturation: 18,
+    exposure: 0,
     sharpen: true,
     algorithm: 'k-means',
     dither: false,
     isGrayscale: false,
-    allowedColors: ['310', '3756', '3843', '3840', '209', '304', '977']
+    allowedColors: ['310', '304', '3843', '977', '209', '3840', '3756']
   },
-
-  // --- SUB-VARIANTS FOR FINE-TUNING ---
   {
     id: 'pop-art-electric',
-    name: 'Pop Art Electric Blue',
-    subtitle: 'Electric Blue Backdrop & Reflections | Fixed 7 Colors',
-    description: 'High-energy pop art style featuring intense Electric Blue reflections and backdrop, with rich Dark Peach skin tone contrast.',
-    bestFor: 'Electric Blue Fans, High Impact Art, Modern Graphic Portraits',
-    brightness: 12,
-    contrast: 32,
-    saturation: 55,
-    exposure: 3,
+    name: 'Pop Art Vibrant',
+    subtitle: 'High-Contrast Comic Pop | 7 Colors',
+    description: 'Punchy high-contrast pop art look with saturated electric blue, golden ochre skin tones, and deep jet-black contours across 7 curated colors.',
+    bestFor: 'High-Contrast Photos, Bold Graphic Art, Posters',
+    brightness: 0,
+    contrast: 24,
+    saturation: 22,
+    exposure: 0,
     sharpen: true,
     algorithm: 'k-means',
     dither: false,
     isGrayscale: false,
-    allowedColors: ['310', '3756', '3843', '3840', '209', '304', '977']
+    allowedColors: ['310', '304', '3843', '977', '209', '3840', '3756']
   },
   {
     id: 'pop-art-warm',
-    name: 'Pop Art Warm Poster',
-    subtitle: 'Dark Peach & Blue Highlight Retro | Fixed 7 Colors',
-    description: 'Posterized retro aesthetic emphasizing rich Dark Peach skin tones, Electric Blue reflections for highlights, and deep brown depth.',
-    bestFor: 'Retro Posters, Warm Photography, Vintage Comic Art',
-    brightness: 6,
-    contrast: 24,
-    saturation: 35,
-    exposure: 2,
-    sharpen: true,
-    algorithm: 'k-means',
-    dither: false,
-    isGrayscale: false,
-    allowedColors: ['310', '3756', '3843', '3840', '209', '304', '977']
-  },
-  {
-    id: 'premium-soft',
-    name: 'Premium Soft Portrait',
-    subtitle: 'Gentle Tones & Smooth Skin Polish | All 13 Colors',
-    description: 'Soft, delicate tonal transitions tailored for natural skin tones, smooth cheeks, and clean portrait details across all 13 colors.',
-    bestFor: 'Soft Portraits, Family Photos, Baby Pictures, Soft Lighting',
+    name: 'Pop Art 13 Colors',
+    subtitle: 'Full Kit Spectrum | All 13 Colors',
+    description: 'Extended pop art portrait utilizing the complete 13-color kit palette for subtle tonal transitions and extra shadow depth.',
+    bestFor: 'Complete 13-Color Kits, Detailed Portraits, Full Shading',
     brightness: 2,
-    contrast: 12,
-    saturation: 8,
-    exposure: 0,
-    sharpen: false,
-    algorithm: 'k-means',
-    dither: false,
-    isGrayscale: false,
-    allowedColors: ['304', '209', '3840', '3843', '3756', '3855', '977', '433', '3864', '3862', '640', '413', '310']
-  },
-  {
-    id: 'premium-contrast',
-    name: 'Premium High-Contrast',
-    subtitle: 'Dramatic Outlines & Clean Blocks | All 13 Colors',
-    description: 'Dramatic fine-art portrait look featuring deep black hair contours, sharp eye outlines, and rich shadow depth across all 13 colors.',
-    bestFor: 'Dramatic Photography, Fine Art Portraits, High Contrast Shots',
-    brightness: 0,
-    contrast: 24,
-    saturation: 12,
+    contrast: 18,
+    saturation: 16,
     exposure: 0,
     sharpen: true,
     algorithm: 'k-means',
     dither: false,
     isGrayscale: false,
-    allowedColors: ['304', '209', '3840', '3843', '3756', '3855', '977', '433', '3864', '3862', '640', '413', '310']
-  }
-];
+    allowedColors: ['310', '413', '304', '3843', '433', '977', '3855', '209', '3840', '3756', '640', '3864', '3862']
+  }];
 
 const DB_NAME = 'DearGiftsDB';
 const STORE_NAME = 'AppState';
@@ -261,8 +222,7 @@ async function getFromDB(key: string): Promise<any> {
  */
 
 // Mutates `data` (an ImageData.data Uint8ClampedArray) in place, applying
-// brightness/contrast/saturation/exposure plus the per-style effects
-// (premium face/skin/background heuristics, pop-art posterization).
+// brightness/contrast/saturation/exposure plus per-style effects.
 function applyFilterToPixels(
   data: Uint8ClampedArray,
   W: number,
@@ -273,9 +233,6 @@ function applyFilterToPixels(
   const { brightness, contrast, saturation, exposure, isGrayscale } = preset;
   const cFactor = (259 * (contrast + 255)) / (255 * (259 - contrast));
   const eFactor = Math.pow(2, exposure / 50);
-  const isPremiumFilter = filterId.startsWith('premium');
-
-
 
   for (let i = 0; i < data.length; i += 4) {
     const pixelIndex = i / 4;
@@ -286,48 +243,85 @@ function applyFilterToPixels(
     const origG = data[i + 1];
     const origB = data[i + 2];
 
-    if (isPremiumFilter) {
-      const cy = H * 0.52;
+    let r = origR;
+    let g = origG;
+    let b = origB;
 
-      // Identify if pixel is skin or lips (lips are strictly below the nose region cy)
-      const isSkin = origR > origG && origG > origB && origR > 95 && origR > origB * 1.25 && (origR - origB) > 30;
-      const isLips = y > cy + H * 0.02 && origR > 125 && origR - origG > 55 && origR - origB > 65 && origG < origR * 0.68 && origB < origR * 0.65;
+    // 1. Exposure and brightness adjustment
+    r *= eFactor;
+    g *= eFactor;
+    b *= eFactor;
+
+    r += brightness;
+    g += brightness;
+    b += brightness;
+
+    // 2. Contrast curve
+    r = cFactor * (r - 128) + 128;
+    g = cFactor * (g - 128) + 128;
+    b = cFactor * (b - 128) + 128;
+
+    const gray = 0.2989 * r + 0.587 * g + 0.114 * b;
+
+    if (isGrayscale) {
+      r = gray;
+      g = gray;
+      b = gray;
+    } else {
+      const satRatio = (saturation + 100) / 100;
+      r = gray + (r - gray) * satRatio;
+      g = gray + (g - gray) * satRatio;
+      b = gray + (b - gray) * satRatio;
+    }
+
+    // 3. High-Clarity Portrait Anchoring (Preserves facial features from dissolving on downsampling)
+    const currentGray = 0.2989 * r + 0.587 * g + 0.114 * b;
+
+    // A. Dark feature anchoring (pupils, eyelashes, eyebrows, nostrils, lip parting line, hair outlines)
+    if (currentGray < 55) {
+      // Deepen dark lines slightly so they hold their contrast across 10x10 grid blocks
+      r = Math.max(0, r * 0.82);
+      g = Math.max(0, g * 0.82);
+      b = Math.max(0, b * 0.82);
+    }
+    // B. Bright teeth, eye sclera, and specular catchlights
+    else if (origR > 195 && origG > 195 && origB > 195 && Math.abs(origR - origB) < 28) {
+      // Keep highlights luminous so teeth and eyes pop clearly
+      r = Math.min(255, r * 1.08 + 10);
+      g = Math.min(255, g * 1.08 + 10);
+      b = Math.min(255, b * 1.08 + 10);
+    }
+    // C. Lip contour clarity (for color styles)
+    else if (!isGrayscale && origR > 120 && origR > origG * 1.22 && origR > origB * 1.25) {
+      // Clean, rich lip definition matching DMC 304
+      r = Math.min(255, r * 1.12 + 8);
+      g = Math.max(0, g * 0.92);
+      b = Math.max(0, b * 0.92);
+    }
+
+    // 4. Style-Specific Fine Tuning
+    if (filterId.startsWith('pop-art')) {
       const grayVal = 0.2989 * origR + 0.587 * origG + 0.114 * origB;
+      const isNeutralWhite = (origR > 185 && origG > 185 && origB > 185 && Math.abs(origR - origG) < 22 && Math.abs(origR - origB) < 22);
 
-      // 1. Natural Subject-Shaped Background Masking
-      const cx = W / 2;
-      let inSubject = false;
-      if (y < H * 0.52) {
-        // Upper head: vertical ellipse
-        const dx = (x - cx) / (W * 0.44);
-        const dy = (y - cy) / (H * 0.46);
-        inSubject = (dx * dx + dy * dy) <= 1.0;
-      } else {
-        // Lower body: trapezoid that widens to cover the shoulders
-        const progress = (y - H * 0.52) / (H * 0.48); // 0 to 1
-        const halfWidth = W * (0.44 + 0.36 * progress); // widens from 0.44*W to 0.80*W
-        inSubject = Math.abs(x - cx) <= halfWidth;
+      // 1. Crisp White teeth, eye sclera, white collar, specular catchlights -> pure White #3756
+      if (isNeutralWhite || grayVal > 220) {
+        data[i] = 245;
+        data[i + 1] = 248;
+        data[i + 2] = 250;
+        continue;
       }
 
-      // We only black out pixels inside the subject if they match background colors, are in the upper head area, and are definitely NOT skin/lips
-
-
-      if (!inSubject) {
+      // 2. Bold Cartoon Inking: pupils, eyebrows, eyelashes, nostrils, dark sunglasses, hair outlines -> Jet Black #310
+      if (grayVal < 68) {
         data[i] = 0;
         data[i + 1] = 0;
         data[i + 2] = 0;
         continue;
       }
 
-      // 2. Sharpen key facial features (eyes, eyebrows, nostrils, outlines)
-      if (grayVal < 55) {
-        data[i] = 0;
-        data[i + 1] = 0;
-        data[i + 2] = 0;
-        continue;
-      }
-
-      // 3. Lips -> DMC 304 Red Medium
+      // 3. Crisp Red Lips: ONLY genuine lips get DMC 304 Red Medium
+      const isLips = y > H * 0.35 && y < H * 0.80 && origR > 135 && (origR - origG) > 50 && (origR - origB) > 50 && origG < 95 && origB < 95;
       if (isLips) {
         data[i] = 179;
         data[i + 1] = 22;
@@ -335,22 +329,30 @@ function applyFilterToPixels(
         continue;
       }
 
-      // 4. Skin -> primary skin color mapping with high-detail blend (62% original, 38% target)
-      let r = origR;
-      let g = origG;
-      let b = origB;
+      // 4. Cartoon Skin Cel-Shading (Golden Ochre #977 base, shadow, and highlight)
+      // Strictly eliminates red tint, splotches, and sunburn patches from the face!
+      const isSkin = origR > origG && origG > origB && origR > 85 && (origR - origB) > 18;
+
       if (isSkin) {
-        let targetR = 249, targetG = 212, targetB = 147; // 3855 for premium-soft
-        if (filterId === 'premium-contrast') {
-          targetR = 220;
-          targetG = 142;
-          targetB = 78; // 977 for premium-contrast
+        // Discretize skin luminance into 3 clean, bold cartoon cel-shading tiers
+        const skinLum = 0.2989 * origR + 0.587 * origG + 0.114 * origB;
+        if (skinLum < 110) {
+          // Cartoon Shadow: under jaw, neck, ear shading -> rich warm brown
+          r = 135; g = 80; b = 40;
+        } else if (skinLum < 165) {
+          // Cartoon Base Skin: cheeks, forehead, chin, nose -> radiant Golden Ochre (#977)
+          r = 220; g = 142; b = 78;
+        } else {
+          // Cartoon Highlight: nose bridge, cheek apex, brow bone -> luminous golden skin highlight
+          r = 246; g = 205; b = 140;
         }
-        r = origR * 0.62 + targetR * 0.38;
-        g = origG * 0.62 + targetG * 0.38;
-        b = origB * 0.62 + targetB * 0.38;
+        data[i] = r;
+        data[i + 1] = g;
+        data[i + 2] = b;
+        continue;
       }
 
+      // 5. Apply exposure, brightness, and contrast curves for backdrop & clothing
       r *= eFactor;
       g *= eFactor;
       b *= eFactor;
@@ -363,52 +365,25 @@ function applyFilterToPixels(
       g = cFactor * (g - 128) + 128;
       b = cFactor * (b - 128) + 128;
 
+      // 6. Enhance saturation for colorful clothing & sky reflections
+      const currentGray = 0.2989 * r + 0.587 * g + 0.114 * b;
+      const satRatio = (saturation + 100) / 100;
+      r = currentGray + (r - currentGray) * satRatio;
+      g = currentGray + (g - currentGray) * satRatio;
+      b = currentGray + (b - currentGray) * satRatio;
+
       data[i] = Math.max(0, Math.min(255, r));
       data[i + 1] = Math.max(0, Math.min(255, g));
       data[i + 2] = Math.max(0, Math.min(255, b));
       continue;
-    }
-
-    let r = origR;
-    let g = origG;
-    let b = origB;
-
-    r *= eFactor;
-    g *= eFactor;
-    b *= eFactor;
-
-    r += brightness;
-    g += brightness;
-    b += brightness;
-
-    r = cFactor * (r - 128) + 128;
-    g = cFactor * (g - 128) + 128;
-    b = cFactor * (b - 128) + 128;
-
-    const gray = 0.2989 * r + 0.587 * g + 0.114 * b;
-    if (isGrayscale) {
-      r = gray;
-      g = gray;
-      b = gray;
-    } else {
-      const satRatio = (saturation + 100) / 100;
-      r = gray + (r - gray) * satRatio;
-      g = gray + (g - gray) * satRatio;
-      b = gray + (b - gray) * satRatio;
-    }
-
-    // Pop Art sub-filter enhancements
-    if (filterId === 'pop-art-electric') {
-      // Boost cool electric blue channel for high-energy backdrop and cool tones
-      if (b > r * 0.85 && b > 70) {
-        b = Math.min(255, b * 1.15 + 12);
-        g = Math.min(255, g * 1.05 + 5);
-      }
-    } else if (filterId === 'pop-art-warm') {
-      // Boost warm tones for rich retro poster warmth
-      if (r > b * 1.1 && r > 80) {
-        r = Math.min(255, r * 1.08 + 10);
-      }
+    } else if (filterId === 'vintage-classic') {
+      // Vintage Sepia warm tone curve
+      const sepiaR = Math.min(255, currentGray * 1.15 + 14);
+      const sepiaG = Math.min(255, currentGray * 0.98 + 4);
+      const sepiaB = Math.max(0, currentGray * 0.78 - 6);
+      r = sepiaR;
+      g = sepiaG;
+      b = sepiaB;
     }
 
     data[i] = Math.max(0, Math.min(255, r));
@@ -518,7 +493,7 @@ const previewCache = new Map<string, { pixels: any[]; palette: DMCColor[] }>();
 function previewCacheKey(filterId: string, croppedImage: string, swaps: Record<string, string>): string {
   // croppedImage is a data URL; a length + short prefix is enough entropy
   // to distinguish crops without hashing the entire (large) string.
-  return `${filterId}::${croppedImage.length}:${croppedImage.slice(0, 64)}::${JSON.stringify(swaps)}`;
+  return `v12-cartoon-strict-no-red::${filterId}::${croppedImage.length}:${croppedImage.slice(0, 64)}::${JSON.stringify(swaps)}`;
 }
 
 /**
@@ -587,40 +562,48 @@ const MiniGridPreview = React.memo(function MiniGridPreview({
     tempImg.onload = () => {
       if (cancelled) return;
 
-      const tempCanvas = document.createElement('canvas');
-      const tCtx = tempCanvas.getContext('2d');
-      if (!tCtx) {
-        setIsLoading(false);
-        return;
-      }
-      tempCanvas.width = previewWidth;
-      tempCanvas.height = previewHeight;
-      tCtx.imageSmoothingEnabled = true;
-      tCtx.imageSmoothingQuality = 'high';
-      tCtx.drawImage(tempImg, 0, 0, previewWidth, previewHeight);
-
-      const imgData = tCtx.getImageData(0, 0, previewWidth, previewHeight);
-      const preset = FILTER_PRESETS.find(p => p.id === filterId);
-      if (preset) {
-        applyFilterToPixels(imgData.data, previewWidth, previewHeight, filterId, preset);
-        tCtx.putImageData(imgData, 0, 0);
-        if (preset.sharpen) {
-          applySharpen(tCtx, previewWidth, previewHeight);
-          const sharpenedData = tCtx.getImageData(0, 0, previewWidth, previewHeight);
-          imgData.data.set(sharpenedData.data);
+      try {
+        const tempCanvas = document.createElement('canvas');
+        const tCtx = tempCanvas.getContext('2d');
+        if (!tCtx) {
+          setIsLoading(false);
+          return;
         }
+        tempCanvas.width = previewWidth;
+        tempCanvas.height = previewHeight;
+        tCtx.imageSmoothingEnabled = true;
+        tCtx.imageSmoothingQuality = 'high';
+        tCtx.drawImage(tempImg, 0, 0, previewWidth, previewHeight);
+
+        const imgData = tCtx.getImageData(0, 0, previewWidth, previewHeight);
+        const preset = FILTER_PRESETS.find(p => p.id === filterId);
+        if (preset) {
+          applyFilterToPixels(imgData.data, previewWidth, previewHeight, filterId, preset);
+          tCtx.putImageData(imgData, 0, 0);
+          if (preset.sharpen) {
+            applySharpen(tCtx, previewWidth, previewHeight);
+            const sharpenedData = tCtx.getImageData(0, 0, previewWidth, previewHeight);
+            imgData.data.set(sharpenedData.data);
+          }
+        }
+
+        const allowedDMC = DMC_COLORS.filter(c => allowedColors.includes(c.code));
+        let result = quantizeImage(imgData.data, previewWidth, previewHeight, 'k-means', allowedDMC.length, preset?.dither ?? true, allowedDMC);
+
+        const isGrayscalePreset = preset?.isGrayscale || filterId === 'vintage';
+        if (!isGrayscalePreset) {
+          result = applyColorSwaps(result, customColorSwaps, allowedColors);
+        }
+
+        previewCache.set(cacheKey, result);
+        drawResult(result);
+      } catch (err) {
+        console.error('Error generating MiniGridPreview:', err);
+        setIsLoading(false);
       }
-
-      const allowedDMC = DMC_COLORS.filter(c => allowedColors.includes(c.code));
-      let result = quantizeImage(imgData.data, previewWidth, previewHeight, 'k-means', allowedDMC.length, false, allowedDMC);
-
-      const isGrayscalePreset = preset?.isGrayscale || filterId === 'vintage';
-      if (!isGrayscalePreset) {
-        result = applyColorSwaps(result, customColorSwaps, allowedColors);
-      }
-
-      previewCache.set(cacheKey, result);
-      drawResult(result);
+    };
+    tempImg.onerror = () => {
+      setIsLoading(false);
     };
     tempImg.src = croppedImage;
 
@@ -654,7 +637,6 @@ export default function App() {
   const [customColorSwaps, setCustomColorSwaps] = useState<Record<string, string>>({});
   const [activeSwapSourceCode, setActiveSwapSourceCode] = useState<string | null>(null);
   const [popArtSubFilter, setPopArtSubFilter] = useState<FilterType>('pop-art');
-  const [premiumSubFilter, setPremiumSubFilter] = useState<FilterType>('premium-soft');
   const [vintageSubFilter, setVintageSubFilter] = useState<FilterType>('vintage');
 
   // Wizard Screen Router States
@@ -715,7 +697,6 @@ export default function App() {
       const actFilter = await getFromDB('activeFilter');
       const colorSwaps = await getFromDB('customColorSwaps');
       const popFilter = await getFromDB('popArtSubFilter');
-      const premFilter = await getFromDB('premiumSubFilter');
       const vintFilter = await getFromDB('vintageSubFilter');
       const selKit = await getFromDB('selectedKit');
       const cropZm = await getFromDB('cropZoom');
@@ -725,12 +706,17 @@ export default function App() {
       if (activeScr) setActiveScreen(activeScr);
       if (origImg) setOriginalImage(origImg);
       if (cropImg) setCroppedImage(cropImg);
-      if (actFilter) setActiveFilter(actFilter);
+      if (actFilter && !actFilter.startsWith('premium')) setActiveFilter(actFilter);
       if (colorSwaps) setCustomColorSwaps(colorSwaps);
       if (popFilter) setPopArtSubFilter(popFilter);
-      if (premFilter) setPremiumSubFilter(premFilter);
       if (vintFilter) setVintageSubFilter(vintFilter);
-      if (selKit) setSelectedKit(selKit);
+      if (selKit) {
+        if (selKit.gridWidth !== 115 || selKit.gridHeight !== 155 || selKit.id === 'primary-30-40') {
+          setSelectedKit(DIAMOND_ART_KITS[0]);
+        } else {
+          setSelectedKit(selKit);
+        }
+      }
       if (cropZm !== undefined && cropZm !== null) setCropZoom(cropZm);
       if (cropPn) setCropPan(cropPn);
       if (cropRot !== undefined && cropRot !== null) setCropRotation(cropRot);
@@ -770,11 +756,6 @@ export default function App() {
     if (!isLoaded) return;
     saveToDB('popArtSubFilter', popArtSubFilter);
   }, [popArtSubFilter, isLoaded]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    saveToDB('premiumSubFilter', premiumSubFilter);
-  }, [premiumSubFilter, isLoaded]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -870,115 +851,131 @@ export default function App() {
 
     const tempImg = new Image();
     tempImg.onload = () => {
-      // 1. Setup filter canvas
-      const filterCanvas = document.createElement('canvas');
-      const fCtx = filterCanvas.getContext('2d');
-      if (!fCtx) {
+      try {
+        // 1. Setup filter canvas
+        const filterCanvas = document.createElement('canvas');
+        const fCtx = filterCanvas.getContext('2d');
+        if (!fCtx) {
+          setIsProcessing(false);
+          return;
+        }
+
+        filterCanvas.width = tempImg.width;
+        filterCanvas.height = tempImg.height;
+        fCtx.imageSmoothingEnabled = true;
+        fCtx.imageSmoothingQuality = 'high';
+        fCtx.drawImage(tempImg, 0, 0);
+
+        const imgData = fCtx.getImageData(0, 0, filterCanvas.width, filterCanvas.height);
+        const data = imgData.data;
+        const W = filterCanvas.width;
+        const H = filterCanvas.height;
+
+        const preset = activeFilterPreset;
+        const { algorithm, dither, sharpen } = preset;
+
+        // 2/3. Apply brightness/contrast/saturation/exposure + per-style effects
+        applyFilterToPixels(data, W, H, activeFilter, preset);
+        fCtx.putImageData(imgData, 0, 0);
+
+        // 4. Sharpen convolution
+        if (sharpen) {
+          applySharpen(fCtx, filterCanvas.width, filterCanvas.height);
+        }
+
+        const filteredUrl = filterCanvas.toDataURL('image/jpeg', 0.9);
+        setProcessedImage(filteredUrl);
+
+        // 5. Downsample to grid resolution and quantize
+        const quantCanvas = document.createElement('canvas');
+        const qCtx = quantCanvas.getContext('2d');
+        if (!qCtx) {
+          setIsProcessing(false);
+          return;
+        }
+
+        quantCanvas.width = selectedKit.gridWidth;
+        quantCanvas.height = selectedKit.gridHeight;
+        qCtx.imageSmoothingEnabled = true;
+        qCtx.imageSmoothingQuality = 'high';
+        qCtx.drawImage(filterCanvas, 0, 0, selectedKit.gridWidth, selectedKit.gridHeight);
+        if (sharpen) {
+          applySharpen(qCtx, selectedKit.gridWidth, selectedKit.gridHeight);
+        }
+        const gridImgData = qCtx.getImageData(0, 0, selectedKit.gridWidth, selectedKit.gridHeight);
+
+        const allowedColorsList = preset.allowedColors;
+        const allowedDMCColors = allowedColorsList
+          .map(code => DMC_COLORS.find(c => c.code === code))
+          .filter((c): c is DMCColor => c !== undefined);
+
+        const maxColors = allowedDMCColors.length;
+
+        let quantResult = quantizeImage(
+          gridImgData.data,
+          selectedKit.gridWidth,
+          selectedKit.gridHeight,
+          algorithm,
+          maxColors,
+          dither,
+          allowedDMCColors
+        );
+
+        const isGrayscaleFilter = preset.isGrayscale || activeFilter === 'vintage';
+        if (!isGrayscaleFilter) {
+          quantResult = applyColorSwaps(quantResult, customColorSwaps, allowedColorsList);
+        }
+
+        // Map to final pattern format
+        const totalPixels = selectedKit.gridWidth * selectedKit.gridHeight;
+        const countsMap = new Map<string, number>();
+
+        const pixels = quantResult.pixels.map(p => {
+          countsMap.set(p.dmc.code, (countsMap.get(p.dmc.code) || 0) + 1);
+          return {
+            x: p.x,
+            y: p.y,
+            colorCode: p.dmc.code,
+            completed: false
+          };
+        });
+
+        // Sort palette strictly in canonical kit order according to allowedColorsList
+        const usedPaletteColors = quantResult.palette.slice().sort((a, b) => {
+          const idxA = allowedColorsList.indexOf(a.code);
+          const idxB = allowedColorsList.indexOf(b.code);
+          return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+        });
+
+        const palette = usedPaletteColors.map(c => {
+          const count = countsMap.get(c.code) || 0;
+          const canonicalIndex = allowedColorsList.indexOf(c.code);
+          return {
+            ...c,
+            symbol: String(canonicalIndex !== -1 ? canonicalIndex + 1 : 1), // Exact match with kit bags & style card
+            count,
+            percentage: (count / totalPixels) * 100
+          };
+        });
+
+        setPattern({
+          width: selectedKit.gridWidth,
+          height: selectedKit.gridHeight,
+          pixels,
+          palette
+        });
+
+        // Reset viewer selections
+        setCompletedCells(new Set());
+        setSelectedColorCode(null);
+        hasAutoZoomedRef.current = false;
         setIsProcessing(false);
-        return;
-      }
-
-      filterCanvas.width = tempImg.width;
-      filterCanvas.height = tempImg.height;
-      fCtx.imageSmoothingEnabled = true;
-      fCtx.imageSmoothingQuality = 'high';
-      fCtx.drawImage(tempImg, 0, 0);
-
-      const imgData = fCtx.getImageData(0, 0, filterCanvas.width, filterCanvas.height);
-      const data = imgData.data;
-      const W = filterCanvas.width;
-      const H = filterCanvas.height;
-
-      const preset = activeFilterPreset;
-      const { algorithm, dither, sharpen } = preset;
-
-      // 2/3. Apply brightness/contrast/saturation/exposure + per-style effects
-      applyFilterToPixels(data, W, H, activeFilter, preset);
-      fCtx.putImageData(imgData, 0, 0);
-
-      // 4. Sharpen convolution
-      if (sharpen) {
-        applySharpen(fCtx, filterCanvas.width, filterCanvas.height);
-      }
-
-      const filteredUrl = filterCanvas.toDataURL('image/jpeg', 0.9);
-      setProcessedImage(filteredUrl);
-
-      // 5. Downsample to grid resolution and quantize
-      const quantCanvas = document.createElement('canvas');
-      const qCtx = quantCanvas.getContext('2d');
-      if (!qCtx) {
+      } catch (err) {
+        console.error('Error processing image in triggerImageProcessing:', err);
         setIsProcessing(false);
-        return;
       }
-
-      quantCanvas.width = selectedKit.gridWidth;
-      quantCanvas.height = selectedKit.gridHeight;
-      qCtx.imageSmoothingEnabled = true;
-      qCtx.imageSmoothingQuality = 'high';
-      qCtx.drawImage(filterCanvas, 0, 0, selectedKit.gridWidth, selectedKit.gridHeight);
-      if (sharpen) {
-        applySharpen(qCtx, selectedKit.gridWidth, selectedKit.gridHeight);
-      }
-      const gridImgData = qCtx.getImageData(0, 0, selectedKit.gridWidth, selectedKit.gridHeight);
-
-      const allowedColorsList = preset.allowedColors;
-      const allowedDMCColors = allowedColorsList
-        .map(code => DMC_COLORS.find(c => c.code === code))
-        .filter((c): c is DMCColor => c !== undefined);
-
-      const maxColors = allowedDMCColors.length;
-
-      let quantResult = quantizeImage(
-        gridImgData.data,
-        selectedKit.gridWidth,
-        selectedKit.gridHeight,
-        algorithm,
-        maxColors,
-        dither,
-        allowedDMCColors
-      );
-
-      const isGrayscaleFilter = preset.isGrayscale || activeFilter === 'vintage';
-      if (!isGrayscaleFilter) {
-        quantResult = applyColorSwaps(quantResult, customColorSwaps, allowedColorsList);
-      }
-
-      // Map to final pattern format
-      const totalPixels = selectedKit.gridWidth * selectedKit.gridHeight;
-      const countsMap = new Map<string, number>();
-
-      const pixels = quantResult.pixels.map(p => {
-        countsMap.set(p.dmc.code, (countsMap.get(p.dmc.code) || 0) + 1);
-        return {
-          x: p.x,
-          y: p.y,
-          colorCode: p.dmc.code,
-          completed: false
-        };
-      });
-
-      const palette = quantResult.palette.map((c, index) => {
-        const count = countsMap.get(c.code) || 0;
-        return {
-          ...c,
-          symbol: String(index + 1), // Sequential numbering instead of glyph symbols
-          count,
-          percentage: (count / totalPixels) * 100
-        };
-      });
-
-      setPattern({
-        width: selectedKit.gridWidth,
-        height: selectedKit.gridHeight,
-        pixels,
-        palette
-      });
-
-      // Reset viewer selections
-      setCompletedCells(new Set());
-      setSelectedColorCode(null);
-      hasAutoZoomedRef.current = false;
+    };
+    tempImg.onerror = () => {
       setIsProcessing(false);
     };
     tempImg.src = croppedImage;
@@ -1343,12 +1340,29 @@ export default function App() {
           ctx.fill();
         }
 
-        if (!smoothPreviewMode && showSymbols && viewerZoom >= 0.7 && (!isCellCompleted || showCompleted)) {
-          const luminance = info.r * 0.299 + info.g * 0.587 + info.b * 0.114;
-          ctx.fillStyle = luminance > 130 ? '#0f172a' : '#ffffff';
-          ctx.font = `bold ${cellBaseSize * 0.55}px sans-serif`;
+        if (!smoothPreviewMode && showSymbols && viewerZoom >= 0.55 && (!isCellCompleted || showCompleted)) {
+          // Standardized perceptual contrast across all DMC tones:
+          // Saturated colors (Red #304, Dark Pewter #413, Black #310, Medium Brown #433,
+          // Lavender Dark #209, and Electric Blue #3843) get crisp White text.
+          // Light colors (Baby Blue #3756, Light Blue #3840, Autumn Gold #3855, Golden Brown #977, Light Skin #3864) get Dark Slate text.
+          const isDarkPurple = info.r > 130 && info.b > 140 && info.g < 130;
+          const isRed = info.r > 150 && info.g < 80 && info.b < 80;
+          const yiq = (info.r * 299 + info.g * 587 + info.b * 114) / 1000;
+
+          const isDarkText = (isDarkPurple || isRed) ? false : yiq > 145;
+          const textColor = isDarkText ? '#0f172a' : '#ffffff';
+          const strokeColor = isDarkText ? 'rgba(255, 255, 255, 0.75)' : 'rgba(0, 0, 0, 0.65)';
+
+          ctx.font = `bold ${cellBaseSize * 0.56}px sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
+
+          // Contrasting text halo/stroke to ensure maximum legibility against colored diamonds
+          ctx.lineWidth = 1.2;
+          ctx.strokeStyle = strokeColor;
+          ctx.strokeText(info.symbol, cx + cellBaseSize / 2, cy + cellBaseSize / 2 + 0.5);
+
+          ctx.fillStyle = textColor;
           ctx.fillText(info.symbol, cx + cellBaseSize / 2, cy + cellBaseSize / 2 + 0.5);
         }
 
@@ -1365,7 +1379,7 @@ export default function App() {
     }
 
     if (showGridLines) {
-      if (viewerZoom >= 0.95 && !smoothPreviewMode) {
+      if (viewerZoom >= 0.35 && !smoothPreviewMode) {
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
         ctx.lineWidth = 0.5;
         for (let x = startCellX; x <= endCellX + 1; x++) {
@@ -1384,55 +1398,111 @@ export default function App() {
         }
       }
 
-      ctx.strokeStyle = 'rgba(244, 63, 139, 0.75)';
-      ctx.lineWidth = Math.max(1, 1.6 / Math.min(viewerZoom, 2));
+      // Major Block lines (Physical Board Sections)
+      // 12 columns total: Columns 1-11 are 10 drills wide, Column 12 is 5 drills wide (x = 110 to 115)
+      // 16 rows total: Rows 1-15 are 10 drills high, Row 16 is 5 drills high (y = 150 to 155)
+      const colBoundaries: number[] = [];
+      for (let x = 0; x < pattern.width; x += 10) {
+        colBoundaries.push(x);
+      }
+      colBoundaries.push(pattern.width);
 
-      for (let gx = 0; gx <= pattern.width; gx += 10) {
-        const lx = gx * cellBaseSize;
+      const rowBoundaries: number[] = [];
+      for (let y = 0; y < pattern.height; y += 10) {
+        rowBoundaries.push(y);
+      }
+      rowBoundaries.push(pattern.height);
+
+      // High-visibility block lines:
+      // Dark contrast halo for sharp definition against light backgrounds (e.g. yellow pop art wall, white shirt)
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.50)';
+      ctx.lineWidth = Math.max(2.2, 3.2 / Math.min(viewerZoom, 2));
+      for (const lx of colBoundaries) {
+        const xPos = lx * cellBaseSize;
         ctx.beginPath();
-        ctx.moveTo(lx, 0);
-        ctx.lineTo(lx, gridHeight);
+        ctx.moveTo(xPos, 0);
+        ctx.lineTo(xPos, gridHeight);
         ctx.stroke();
       }
-      if (pattern.width % 10 !== 0) {
-        const lx = pattern.width * cellBaseSize;
+      for (const ly of rowBoundaries) {
+        const yPos = ly * cellBaseSize;
         ctx.beginPath();
-        ctx.moveTo(lx, 0);
-        ctx.lineTo(lx, gridHeight);
+        ctx.moveTo(0, yPos);
+        ctx.lineTo(gridWidth, yPos);
         ctx.stroke();
       }
 
-      for (let gy = 0; gy <= pattern.height; gy += 10) {
-        const ly = gy * cellBaseSize;
+      // Bright inner core for sharp definition against dark areas (e.g. black hair, dark jacket)
+      ctx.strokeStyle = 'rgba(129, 140, 248, 0.95)';
+      ctx.lineWidth = Math.max(1.2, 1.6 / Math.min(viewerZoom, 2));
+      for (const lx of colBoundaries) {
+        const xPos = lx * cellBaseSize;
         ctx.beginPath();
-        ctx.moveTo(0, ly);
-        ctx.lineTo(gridWidth, ly);
+        ctx.moveTo(xPos, 0);
+        ctx.lineTo(xPos, gridHeight);
         ctx.stroke();
       }
-      if (pattern.height % 10 !== 0) {
-        const ly = pattern.height * cellBaseSize;
+      for (const ly of rowBoundaries) {
+        const yPos = ly * cellBaseSize;
         ctx.beginPath();
-        ctx.moveTo(0, ly);
-        ctx.lineTo(gridWidth, ly);
+        ctx.moveTo(0, yPos);
+        ctx.lineTo(gridWidth, yPos);
         ctx.stroke();
       }
 
-      ctx.strokeStyle = '#f43f8b';
-      ctx.lineWidth = Math.max(1.5, 2.2 / Math.min(viewerZoom, 2));
+      // Outer Board Border matching canvas frame
+      ctx.strokeStyle = '#4338ca';
+      ctx.lineWidth = Math.max(2, 3 / Math.min(viewerZoom, 2));
       ctx.strokeRect(0, 0, gridWidth, gridHeight);
 
-      if (viewerZoom >= 0.55 && !smoothPreviewMode) {
-        ctx.fillStyle = 'rgba(244, 63, 139, 0.95)';
-        ctx.font = `bold ${Math.max(6.5, cellBaseSize * 0.4)}px sans-serif`;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
+      // Checkered Periwinkle Blue Blocks & Physical Board Numbers (1 to 192) matching Image 1
+      const numBlockCols = colBoundaries.length - 1;
+      const numBlockRows = rowBoundaries.length - 1;
 
-        for (let gx = 0; gx < pattern.width; gx += 10) {
-          for (let gy = 0; gy < pattern.height; gy += 10) {
-            if (gx >= startCellX - 10 && gx <= endCellX && gy >= startCellY - 10 && gy <= endCellY) {
-              const colLabel = `${gx + 1}-${Math.min(gx + 10, pattern.width)}`;
-              const rowLabel = `${gy + 1}-${Math.min(gy + 10, pattern.height)}`;
-              ctx.fillText(`${rowLabel} • ${colLabel}`, gx * cellBaseSize + 2.5, gy * cellBaseSize + 2.5);
+      for (let blockRow = 0; blockRow < numBlockRows; blockRow++) {
+        const startY = rowBoundaries[blockRow];
+        const endY = rowBoundaries[blockRow + 1];
+        const by = startY * cellBaseSize;
+        const bh = (endY - startY) * cellBaseSize;
+
+        for (let blockCol = 0; blockCol < numBlockCols; blockCol++) {
+          const startX = colBoundaries[blockCol];
+          const endX = colBoundaries[blockCol + 1];
+          const bx = startX * cellBaseSize;
+          const bw = (endX - startX) * cellBaseSize;
+
+          const blockNum = blockRow * numBlockCols + blockCol + 1;
+          const isBlueBlock = (blockRow + blockCol) % 2 === 0;
+
+          if (endX >= startCellX && startX <= endCellX && endY >= startCellY && startY <= endCellY) {
+            // Draw Checkered Soft Blue tint matching Image 1 physical board
+            if (isBlueBlock) {
+              ctx.fillStyle = 'rgba(147, 180, 230, 0.22)';
+              ctx.fillRect(bx, by, bw, bh);
+            }
+
+            // Draw Block Numbers matching the physical board
+            if (viewerZoom >= 0.45 && !smoothPreviewMode) {
+              const fontSize = Math.max(6.5, Math.min(10.5, cellBaseSize * 0.40));
+              ctx.font = `bold ${fontSize}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`;
+              ctx.textAlign = 'left';
+              ctx.textBaseline = 'top';
+
+              const label = `#${blockNum}`;
+              const textWidth = ctx.measureText(label).width;
+
+              // Distinct badge matching the board's blue & white alternating style
+              ctx.fillStyle = isBlueBlock ? 'rgba(30, 58, 138, 0.90)' : 'rgba(51, 65, 85, 0.82)';
+              ctx.beginPath();
+              if (ctx.roundRect) {
+                ctx.roundRect(bx + 2, by + 2, textWidth + 6, fontSize + 4, 3);
+              } else {
+                ctx.rect(bx + 2, by + 2, textWidth + 6, fontSize + 4);
+              }
+              ctx.fill();
+
+              ctx.fillStyle = '#ffffff';
+              ctx.fillText(label, bx + 5, by + 3.8);
             }
           }
         }
@@ -1753,7 +1823,22 @@ export default function App() {
             Turn your treasured memories & custom photos into precision diamond grid instructions with physical DMC kit color matching.
           </p>
 
-          <div className="pt-4 max-w-md mx-auto w-full">
+          <div className="pt-4 max-w-md mx-auto w-full space-y-4">
+            {/* IMPORTANT ORDER NOTICE */}
+            <div className="bg-amber-50/95 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 text-left shadow-sm backdrop-blur-md flex items-start space-x-3.5">
+              <div className="p-2 bg-amber-100 rounded-xl text-amber-700 shrink-0 mt-0.5">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-xs font-black uppercase tracking-wider text-amber-900">
+                  Important Notice
+                </h4>
+                <p className="text-xs text-amber-950 leading-relaxed font-semibold">
+                  Please select <span className="underline decoration-amber-500 font-black">only the filter which was ordered by you</span>. If not, we will not be responsible for any unexpected outcome.
+                </p>
+              </div>
+            </div>
+
             <div className="bg-white/95 border border-purple-100 hover:border-pink-300 rounded-3xl p-7 sm:p-8 backdrop-blur-md transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/10 flex flex-col items-center space-y-5 text-center">
               <div className="w-14 h-14 rounded-2xl bg-dear-gradient flex items-center justify-center text-white shadow-md shadow-pink-500/20">
                 <Sparkles className="h-7 w-7" />
@@ -1991,7 +2076,7 @@ export default function App() {
                 Choose Your Art Style
               </h2>
               <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-0.5">
-                4 Unique Aesthetic Styles • Select Your Preferred Diamond Art Guide
+                3 Unique Aesthetic Styles • Select Your Preferred Diamond Art Guide
               </p>
             </div>
             <div className="flex items-center space-x-2 bg-white border border-slate-200 px-3.5 py-1.5 rounded-full shadow-xs">
@@ -2002,13 +2087,30 @@ export default function App() {
             </div>
           </div>
 
-          {/* 4 Style Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch">
+          {/* IMPORTANT ORDER NOTICE BANNER */}
+          <div className="bg-amber-50/95 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 flex items-start sm:items-center space-x-3.5 shadow-sm">
+            <div className="p-2 bg-amber-100 rounded-xl text-amber-700 shrink-0">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+            </div>
+            <div className="text-left space-y-0.5">
+              <div className="text-xs font-black uppercase tracking-wider text-amber-900">
+                Important Reminder
+              </div>
+              <p className="text-xs text-amber-950 font-semibold leading-relaxed">
+                Please select <span className="underline decoration-amber-500 font-black">only the filter which was ordered by you</span>. If not, we will not be responsible for any unexpected outcome.
+              </p>
+            </div>
+          </div>
+
+          {/* 3 Style Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
 
             {/* CARD 1: ORIGINAL MONOCHROME */}
             {(() => {
               const preset = FILTER_PRESETS[0]; // 'vintage'
-              const allowedDMC = DMC_COLORS.filter(c => preset.allowedColors.includes(c.code));
+              const allowedDMC = preset.allowedColors
+                .map(code => DMC_COLORS.find(c => c.code === code))
+                .filter((c): c is DMCColor => c !== undefined);
               return (
                 <div className="bg-white border border-slate-200 rounded-3xl p-5 space-y-4 hover:border-pink-300 hover:shadow-lg transition duration-200 flex flex-col justify-between">
                   <div className="space-y-4">
@@ -2035,8 +2137,8 @@ export default function App() {
                           croppedImage={croppedImage}
                           customColorSwaps={customColorSwaps}
                         />
-                        <div className="absolute bottom-2 right-2 bg-slate-900/90 text-white font-black text-[9px] px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md border border-white/20">
-                          MONOCHROME A4
+                        <div className="absolute bottom-2 right-2 bg-white text-slate-900 font-black text-[9px] px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md border border-slate-200">
+                          ORIGINAL A4
                         </div>
                       </div>
                     </div>
@@ -2100,7 +2202,9 @@ export default function App() {
             {/* CARD 2: VINTAGE SEPIA */}
             {(() => {
               const preset = FILTER_PRESETS[1]; // 'vintage-classic'
-              const allowedDMC = DMC_COLORS.filter(c => preset.allowedColors.includes(c.code));
+              const allowedDMC = preset.allowedColors
+                .map(code => DMC_COLORS.find(c => c.code === code))
+                .filter((c): c is DMCColor => c !== undefined);
               return (
                 <div className="bg-white border border-amber-200/80 rounded-3xl p-5 space-y-4 hover:border-amber-400 hover:shadow-lg transition duration-200 flex flex-col justify-between">
                   <div className="space-y-4">
@@ -2127,8 +2231,8 @@ export default function App() {
                           croppedImage={croppedImage}
                           customColorSwaps={customColorSwaps}
                         />
-                        <div className="absolute bottom-2 right-2 bg-amber-950/90 text-amber-200 font-black text-[9px] px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md border border-amber-400/30">
-                          VINTAGE SEPIA
+                        <div className="absolute bottom-2 right-2 bg-white text-slate-900 font-black text-[9px] px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md border border-slate-200">
+                          VINTAGE A4
                         </div>
                       </div>
                     </div>
@@ -2189,16 +2293,18 @@ export default function App() {
               );
             })()}
 
-            {/* CARD 3: POP ART */}
+            {/* CARD 3: POP ART FILTERS */}
             {(() => {
               const preset = FILTER_PRESETS.find(p => p.id === popArtSubFilter) || FILTER_PRESETS[2];
-              const allowedDMC = DMC_COLORS.filter(c => preset.allowedColors.includes(c.code));
+              const allowedDMC = preset.allowedColors
+                .map(code => DMC_COLORS.find(c => c.code === code))
+                .filter((c): c is DMCColor => c !== undefined);
               return (
                 <div className="bg-white border border-pink-200 rounded-3xl p-5 space-y-4 hover:border-pink-400 hover:shadow-lg transition duration-200 flex flex-col justify-between">
                   <div className="space-y-4">
                     <div className="text-center space-y-1">
                       <div className="inline-flex items-center justify-center space-x-1.5 bg-pink-50 text-pink-600 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border border-pink-100">
-                        <span>Style 3: Pop Art</span>
+                        <span>Style 3: Pop Art Filters</span>
                       </div>
                       <h3 className="text-[11px] font-bold text-slate-700 leading-normal pt-1">
                         {preset.subtitle}
@@ -2219,7 +2325,7 @@ export default function App() {
                           croppedImage={croppedImage}
                           customColorSwaps={customColorSwaps}
                         />
-                        <div className="absolute bottom-2 right-2 bg-slate-900/90 text-white font-black text-[9px] px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md border border-white/20">
+                        <div className="absolute bottom-2 right-2 bg-white text-slate-900 font-black text-[9px] px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md border border-slate-200">
                           POP-ART A4
                         </div>
                       </div>
@@ -2231,7 +2337,7 @@ export default function App() {
                           Palette Used
                         </span>
                         <span className="text-[9px] font-extrabold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full border border-pink-100 font-mono">
-                          {preset.allowedColors.length} Colors (Fixed)
+                          {preset.allowedColors.length} Colors (Full Kit)
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center justify-center gap-1.5 max-h-[140px] overflow-y-auto p-1 bg-slate-50/70 rounded-xl border border-slate-100">
@@ -2240,7 +2346,7 @@ export default function App() {
                           return (
                             <div key={c.code} className="flex flex-col items-center bg-white border border-slate-200 p-1.5 rounded-xl min-w-[40px] shrink-0 text-center shadow-xs">
                               <div className="w-4.5 h-4.5 rounded border border-slate-200 shadow-inner flex items-center justify-center" style={{ backgroundColor: c.hex }}>
-                                <span className="text-[8px] font-black text-slate-950 font-sans" style={{ color: (c.r * 0.299 + c.g * 0.587 + c.b * 0.114) > 128 ? '#000000' : '#ffffff' }}>
+                                <span className="text-[8px] font-black font-sans" style={{ color: (c.r * 0.299 + c.g * 0.587 + c.b * 0.114) > 145 ? '#0f172a' : '#ffffff' }}>
                                   {symbol}
                                 </span>
                               </div>
@@ -2258,9 +2364,9 @@ export default function App() {
                       </span>
                       <div className="flex items-center justify-center space-x-1">
                         {[
-                          { id: 'pop-art', label: 'Classic' },
-                          { id: 'pop-art-electric', label: 'Electric' },
-                          { id: 'pop-art-warm', label: 'Warm' }
+                          { id: 'pop-art', label: 'Classic (7 Colors)' },
+                          { id: 'pop-art-electric', label: 'Vibrant (7 Colors)' },
+                          { id: 'pop-art-warm', label: 'Full Kit (13 Colors)' }
                         ].map(sub => (
                           <button
                             key={sub.id}
@@ -2290,113 +2396,7 @@ export default function App() {
                     }}
                     className="w-full py-3.5 rounded-2xl bg-pink-600 hover:bg-pink-500 text-white font-black text-xs uppercase tracking-wider transition duration-150 cursor-pointer active:scale-95 shadow-md shadow-pink-600/10 mt-2"
                   >
-                    Select Pop Art ({preset.name})
-                  </button>
-                </div>
-              );
-            })()}
-
-            {/* CARD 4: PREMIUM */}
-            {(() => {
-              const preset = FILTER_PRESETS.find(p => p.id === premiumSubFilter) || FILTER_PRESETS[5];
-              const allowedDMC = DMC_COLORS.filter(c => preset.allowedColors.includes(c.code));
-              return (
-                <div className="bg-white border border-purple-200/80 rounded-3xl p-5 space-y-4 hover:border-purple-400 hover:shadow-lg transition duration-200 flex flex-col justify-between">
-                  <div className="space-y-4">
-                    <div className="text-center space-y-1">
-                      <div className="inline-flex items-center justify-center space-x-1.5 bg-purple-50 text-purple-600 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border border-purple-100">
-                        <span>Style 4: Premium</span>
-                      </div>
-                      <h3 className="text-[11px] font-bold text-slate-700 leading-normal pt-1">
-                        {preset.subtitle}
-                      </h3>
-                      <p className="text-[10px] text-slate-500 leading-relaxed px-1">
-                        {preset.description}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col items-center space-y-2 bg-slate-50/80 p-3 rounded-2xl border border-slate-200">
-                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">
-                        Diamond Art Style Preview
-                      </span>
-                      <div className="w-[160px] h-[213px] rounded-2xl overflow-hidden border border-slate-200 shadow-md shrink-0 relative">
-                        <MiniGridPreview
-                          filterId={preset.id}
-                          allowedColors={preset.allowedColors}
-                          croppedImage={croppedImage}
-                          customColorSwaps={customColorSwaps}
-                        />
-                        <div className="absolute bottom-2 right-2 bg-purple-950/90 text-purple-200 font-black text-[9px] px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md border border-purple-400/30">
-                          PREMIUM A4
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between px-1">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">
-                          Palette Used
-                        </span>
-                        <span className="text-[9px] font-extrabold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100 font-mono">
-                          {preset.allowedColors.length} Colors (Full)
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap items-center justify-center gap-1.5 max-h-[140px] overflow-y-auto p-1 bg-slate-50/70 rounded-xl border border-slate-100">
-                        {allowedDMC.map((c, sIdx) => {
-                          const symbol = String(sIdx + 1);
-                          return (
-                            <div key={c.code} className="flex flex-col items-center bg-white border border-slate-200 p-1.5 rounded-xl min-w-[40px] shrink-0 text-center shadow-xs">
-                              <div className="w-4.5 h-4.5 rounded border border-slate-200 shadow-inner flex items-center justify-center" style={{ backgroundColor: c.hex }}>
-                                <span className="text-[8px] font-black text-slate-950 font-sans" style={{ color: (c.r * 0.299 + c.g * 0.587 + c.b * 0.114) > 128 ? '#000000' : '#ffffff' }}>
-                                  {symbol}
-                                </span>
-                              </div>
-                              <span className="text-[8px] font-black text-slate-800 mt-1 font-mono">#{c.code}</span>
-                              <span className="text-[6px] text-slate-500 font-semibold truncate max-w-[42px]">{c.name}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <div className="pt-2 border-t border-slate-100 space-y-1.5">
-                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider block text-center">
-                        Premium Style Options:
-                      </span>
-                      <div className="flex items-center justify-center space-x-1">
-                        {[
-                          { id: 'premium-soft', label: 'Soft' },
-                          { id: 'premium-contrast', label: 'Contrast' }
-                        ].map(sub => (
-                          <button
-                            key={sub.id}
-                            onClick={() => setPremiumSubFilter(sub.id as FilterType)}
-                            className={`flex-1 py-1.5 text-[9px] font-extrabold rounded-xl transition cursor-pointer text-center ${premiumSubFilter === sub.id
-                                ? 'bg-pink-600 text-white shadow-xs'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                              }`}
-                          >
-                            {sub.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="text-[10px] text-slate-600 text-center leading-normal pt-2 border-t border-slate-100">
-                      <span className="text-slate-400 font-bold uppercase text-[9px]">Best For: </span>
-                      <span className="text-slate-800 font-bold">{preset.bestFor}</span>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setActiveFilter(premiumSubFilter);
-                      hasAutoZoomedRef.current = false;
-                      setActiveScreen('grid-viewer');
-                    }}
-                    className="w-full py-3.5 rounded-2xl bg-pink-600 hover:bg-pink-500 text-white font-black text-xs uppercase tracking-wider transition duration-150 cursor-pointer active:scale-95 shadow-md shadow-pink-600/10 mt-2"
-                  >
-                    Select Premium ({preset.name})
+                    Select Pop Art Filters ({preset.name})
                   </button>
                 </div>
               );
@@ -2444,12 +2444,13 @@ export default function App() {
               <span>{selectedKit.diamondSizeMm}mm {selectedKit.shape}</span>
               <span>•</span>
               <span className="text-emerald-600">Pack: {
-                selectedKit.gridWidth === 115 && selectedKit.gridHeight === 155 ? '18,500' :
-                  selectedKit.gridWidth === 107 && selectedKit.gridHeight === 143 ? '16,000' :
-                    selectedKit.gridWidth === 143 && selectedKit.gridHeight === 179 ? '26,500' :
-                      selectedKit.gridWidth === 75 && selectedKit.gridHeight === 100 ? '7,800' :
-                        selectedKit.gridWidth === 100 && selectedKit.gridHeight === 125 ? '13,000' :
-                          (Math.ceil((selectedKit.gridWidth * selectedKit.gridHeight * 1.04) / 500) * 500).toLocaleString()
+                selectedKit.gridWidth === 120 && selectedKit.gridHeight === 160 ? '20,000' :
+                  selectedKit.gridWidth === 115 && selectedKit.gridHeight === 155 ? '18,500' :
+                    selectedKit.gridWidth === 107 && selectedKit.gridHeight === 143 ? '16,000' :
+                      selectedKit.gridWidth === 143 && selectedKit.gridHeight === 179 ? '26,500' :
+                        selectedKit.gridWidth === 75 && selectedKit.gridHeight === 100 ? '7,800' :
+                          selectedKit.gridWidth === 100 && selectedKit.gridHeight === 125 ? '13,000' :
+                            (Math.ceil((selectedKit.gridWidth * selectedKit.gridHeight * 1.04) / 500) * 500).toLocaleString()
               } beads</span>
             </div>
             <button
@@ -2496,41 +2497,8 @@ export default function App() {
                       <div className="flex items-center space-x-1">
                         {[
                           { id: 'pop-art', label: 'Classic' },
-                          { id: 'pop-art-electric', label: 'Electric' },
-                          { id: 'pop-art-warm', label: 'Warm' }
-                        ].map(sub => (
-                          <button
-                            key={sub.id}
-                            onClick={() => setActiveFilter(sub.id as FilterType)}
-                            className={`flex-1 py-1.5 text-[9px] font-extrabold rounded-xl transition cursor-pointer text-center ${activeFilter === sub.id
-                                ? 'bg-pink-600 text-white shadow-xs'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                              }`}
-                          >
-                            {sub.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {currentPreset.id.startsWith('premium') && (
-                    <div className="pt-2 border-t border-slate-100 space-y-1.5">
-                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider block">
-                        Switch Premium Style:
-                      </span>
-                      <div className="flex items-center space-x-1">
-                        {/*
-                          FIX: removed the "Master" -> id 'premium' option that
-                          used to be here. There is no FILTER_PRESETS entry
-                          with id 'premium', so selecting it silently fell
-                          back to the vintage preset in every lookup while
-                          this button still rendered as "selected" — a
-                          confusing dead state.
-                        */}
-                        {[
-                          { id: 'premium-soft', label: 'Soft' },
-                          { id: 'premium-contrast', label: 'Contrast' }
+                          { id: 'pop-art-electric', label: 'Contrast' },
+                          { id: 'pop-art-warm', label: 'Full Canvas' }
                         ].map(sub => (
                           <button
                             key={sub.id}
@@ -2669,8 +2637,12 @@ export default function App() {
 
           <div className="p-3 bg-white/70 backdrop-blur-xs border-b border-slate-200 flex items-center justify-between px-6 z-10">
             <div className="flex items-center space-x-2">
-              <span className="text-[11px] font-bold text-slate-600 font-mono">
-                {selectedKit.gridWidth} × {selectedKit.gridHeight} Grid (10×10 Blocks)
+              <span className="text-[11px] font-bold font-mono bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg border border-indigo-200/80 flex items-center space-x-1.5">
+                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                <span>Physical Board: {selectedKit.gridWidth} × {selectedKit.gridHeight} (192 Blocks)</span>
+              </span>
+              <span className="text-[11px] text-slate-500 font-mono hidden sm:inline">
+                Col 12: 5 cols • Row 16: 5 rows • {(selectedKit.gridWidth * selectedKit.gridHeight).toLocaleString()} Drills
               </span>
             </div>
             <div className="flex items-center space-x-2">
@@ -2764,14 +2736,13 @@ export default function App() {
           {/* Bottom Filter Previews Bar (Filtered strictly by selected category) */}
           <div className="bg-white/95 backdrop-blur-md border-t border-slate-200 p-2 px-4 flex items-center space-x-3 overflow-x-auto shrink-0 z-10">
             <span className="text-[9px] font-black uppercase tracking-wider text-pink-600 shrink-0">
-              {activeFilter === 'vintage' ? 'Monochrome Filter:' : activeFilter === 'vintage-classic' ? 'Sepia Filter:' : activeFilter.startsWith('pop-art') ? 'Pop Art Filters:' : 'Premium Filters:'}
+              {activeFilter === 'vintage' ? 'Monochrome Filter:' : activeFilter === 'vintage-classic' ? 'Sepia Filter:' : 'Pop Art Filters:'}
             </span>
             <div className="flex items-center space-x-2">
               {FILTER_PRESETS.filter(p => {
                 if (activeFilter === 'vintage') return p.id === 'vintage';
                 if (activeFilter === 'vintage-classic') return p.id === 'vintage-classic';
                 if (activeFilter.startsWith('pop-art')) return p.id.startsWith('pop-art');
-                if (activeFilter.startsWith('premium')) return p.id.startsWith('premium');
                 return true;
               }).map(preset => {
                 const isActive = activeFilter === preset.id;
