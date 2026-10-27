@@ -117,12 +117,12 @@ const FILTER_PRESETS: FilterPreset[] = [
     allowedColors: ['310', '413', '640', '3864', '3756', '433', '977']
   },
 
-  // --- 3. POP ART FILTERS (7-Color Comic Silk-Screen & 13-Color Full Kit) ---
+  // --- 3. POP ART FILTERS (Curated 7-Color Silk-Screen Palette: DMC 209, 310, 433, 640, 977, 3756, 3840) ---
   {
     id: 'pop-art',
     name: 'Pop Art Classic',
-    subtitle: '7-Color Comic Silk-Screen | Electric Blue & Warm Gold',
-    description: 'Iconic silk-screen pop art portrait featuring bold black inking, radiant golden skin, electric blue & lavender backdrop planes, and vivid crimson accents.',
+    subtitle: '7-Color Pop Art | Silk-Screen Portrait',
+    description: 'Iconic 7-color pop art portrait with radiant golden skin, forehead specular glow, lavender clothing, and bold black inking.',
     bestFor: 'Pop Art Fans, Colorful Portraits, Modern Decor',
     brightness: 2,
     contrast: 18,
@@ -130,15 +130,15 @@ const FILTER_PRESETS: FilterPreset[] = [
     exposure: 0,
     sharpen: true,
     algorithm: 'k-means',
-    dither: false,
+    dither: true,
     isGrayscale: false,
-    allowedColors: ['310', '304', '3843', '977', '209', '3840', '3756']
+    allowedColors: ['209', '310', '433', '640', '977', '3756', '3840']
   },
   {
     id: 'pop-art-electric',
     name: 'Pop Art Vibrant',
-    subtitle: 'High-Contrast Comic Pop | 7 Colors',
-    description: 'Punchy high-contrast pop art look with saturated electric blue, golden ochre skin tones, and deep jet-black contours across 7 curated colors.',
+    subtitle: 'High-Contrast Pop Art | 7 Colors',
+    description: 'Punchy graphic pop art with deep jet-black contours, vivid golden tones, and crisp shadow contrast across the 7 curated colors.',
     bestFor: 'High-Contrast Photos, Bold Graphic Art, Posters',
     brightness: 0,
     contrast: 24,
@@ -146,25 +146,25 @@ const FILTER_PRESETS: FilterPreset[] = [
     exposure: 0,
     sharpen: true,
     algorithm: 'k-means',
-    dither: false,
+    dither: true,
     isGrayscale: false,
-    allowedColors: ['310', '304', '3843', '977', '209', '3840', '3756']
+    allowedColors: ['209', '310', '433', '640', '977', '3756', '3840']
   },
   {
     id: 'pop-art-warm',
-    name: 'Pop Art 13 Colors',
-    subtitle: 'Full Kit Spectrum | All 13 Colors',
-    description: 'Extended pop art portrait utilizing the complete 13-color kit palette for subtle tonal transitions and extra shadow depth.',
-    bestFor: 'Complete 13-Color Kits, Detailed Portraits, Full Shading',
+    name: 'Pop Art Balanced',
+    subtitle: 'Smooth Silk-Screen | 7 Colors',
+    description: 'Balanced pop art portrait utilizing the 7-color palette for smooth facial shading and clean silk-screen contrast.',
+    bestFor: 'Evenly Lit Photos, Detailed Portraits, Soft Pop Art',
     brightness: 2,
-    contrast: 18,
-    saturation: 16,
+    contrast: 14,
+    saturation: 14,
     exposure: 0,
     sharpen: true,
     algorithm: 'k-means',
-    dither: false,
+    dither: true,
     isGrayscale: false,
-    allowedColors: ['310', '413', '304', '3843', '433', '977', '3855', '209', '3840', '3756', '640', '3864', '3862']
+    allowedColors: ['209', '310', '433', '640', '977', '3756', '3840']
   }];
 
 const DB_NAME = 'DearGiftsDB';
@@ -236,7 +236,6 @@ function applyFilterToPixels(
 
   for (let i = 0; i < data.length; i += 4) {
     const pixelIndex = i / 4;
-    const x = pixelIndex % W;
     const y = Math.floor(pixelIndex / W);
 
     const origR = data[i];
@@ -301,81 +300,62 @@ function applyFilterToPixels(
 
     // 4. Style-Specific Fine Tuning
     if (filterId.startsWith('pop-art')) {
-      const grayVal = 0.2989 * origR + 0.587 * origG + 0.114 * origB;
-      const isNeutralWhite = (origR > 185 && origG > 185 && origB > 185 && Math.abs(origR - origG) < 22 && Math.abs(origR - origB) < 22);
-
-      // 1. Crisp White teeth, eye sclera, white collar, specular catchlights -> pure White #3756
-      if (isNeutralWhite || grayVal > 220) {
-        data[i] = 245;
-        data[i + 1] = 248;
-        data[i + 2] = 250;
-        continue;
+      // Anchor dark features (sunglasses, pupils, eyebrows, nostrils, beard, mustache, hair contours) to deep black DMC 310
+      if (currentGray < 65) {
+        r = Math.max(0, r * 0.65);
+        g = Math.max(0, g * 0.65);
+        b = Math.max(0, b * 0.65);
       }
+      // Anchor specular whites (teeth, eye sclera, white highlights) to pure luminous white DMC 3756
+      else if (origR > 185 && origG > 185 && origB > 185 && Math.abs(origR - origB) < 28) {
+        r = Math.min(255, r * 1.10 + 15);
+        g = Math.min(255, g * 1.10 + 15);
+        b = Math.min(255, b * 1.10 + 15);
+      } else {
+        const isSkin = (origR > origG && origG > origB && origR > 75 && (origR - origB) > 14);
 
-      // 2. Bold Cartoon Inking: pupils, eyebrows, eyelashes, nostrils, dark sunglasses, hair outlines -> Jet Black #310
-      if (grayVal < 68) {
-        data[i] = 0;
-        data[i + 1] = 0;
-        data[i + 2] = 0;
-        continue;
-      }
-
-      // 3. Crisp Red Lips: ONLY genuine lips get DMC 304 Red Medium
-      const isLips = y > H * 0.35 && y < H * 0.80 && origR > 135 && (origR - origG) > 50 && (origR - origB) > 50 && origG < 95 && origB < 95;
-      if (isLips) {
-        data[i] = 179;
-        data[i + 1] = 22;
-        data[i + 2] = 46;
-        continue;
-      }
-
-      // 4. Cartoon Skin Cel-Shading (Golden Ochre #977 base, shadow, and highlight)
-      // Strictly eliminates red tint, splotches, and sunburn patches from the face!
-      const isSkin = origR > origG && origG > origB && origR > 85 && (origR - origB) > 18;
-
-      if (isSkin) {
-        // Discretize skin luminance into 3 clean, bold cartoon cel-shading tiers
-        const skinLum = 0.2989 * origR + 0.587 * origG + 0.114 * origB;
-        if (skinLum < 110) {
-          // Cartoon Shadow: under jaw, neck, ear shading -> rich warm brown
-          r = 135; g = 80; b = 40;
-        } else if (skinLum < 165) {
-          // Cartoon Base Skin: cheeks, forehead, chin, nose -> radiant Golden Ochre (#977)
-          r = 220; g = 142; b = 78;
+        if (isSkin) {
+          // A. High skin highlight on forehead / brow -> Light Blue (DMC 3840 #AAC2E2)
+          if (currentGray > 165) {
+            r = currentGray * 0.88 + 15;
+            g = currentGray * 0.96 + 18;
+            b = Math.min(255, currentGray * 1.15 + 30);
+          }
+          // B. Skin shadows: neck cast shadow -> Khaki Gray (DMC 640 #867C6D); facial contours -> Brown (DMC 433 #714423)
+          else if (currentGray < 118) {
+            const isNeckShadow = (origR - origB) < 28 || (y > H * 0.45 && origG > origB);
+            if (isNeckShadow) {
+              r = currentGray * 0.96 + 6;
+              g = currentGray * 0.90 + 4;
+              b = currentGray * 0.80 + 2;
+            } else {
+              r = Math.min(255, currentGray * 1.14 + 10);
+              g = currentGray * 0.70 + 4;
+              b = currentGray * 0.38;
+            }
+          }
+          // C. Base illuminated skin -> Radiant Golden Ochre (DMC 977 #DC8E4E)
+          else {
+            r = Math.min(255, currentGray * 1.18 + 18);
+            g = Math.min(255, currentGray * 0.92 + 6);
+            b = Math.max(0, currentGray * 0.50 - 6);
+          }
         } else {
-          // Cartoon Highlight: nose bridge, cheek apex, brow bone -> luminous golden skin highlight
-          r = 246; g = 205; b = 140;
+          // Non-skin:
+          const isLightNeutralBg = currentGray > 155 && Math.abs(origR - origB) < 25 && Math.abs(origR - origG) < 25;
+          if (isLightNeutralBg) {
+            // Clean neutral white backdrop -> Baby Blue / Off-white (DMC 3756 #EEF3F5)
+            r = Math.min(255, currentGray * 1.04 + 12);
+            g = Math.min(255, currentGray * 1.04 + 12);
+            b = Math.min(255, currentGray * 1.06 + 15);
+          } else if (currentGray >= 65 && currentGray <= 180) {
+            // Clothing & cool midtones -> Silk-Screen Lavender (DMC 209 #A370AC)
+            r = Math.min(255, currentGray * 1.02 + 12);
+            g = Math.max(0, currentGray * 0.76);
+            b = Math.min(255, currentGray * 1.10 + 18);
+          }
         }
-        data[i] = r;
-        data[i + 1] = g;
-        data[i + 2] = b;
-        continue;
       }
-
-      // 5. Apply exposure, brightness, and contrast curves for backdrop & clothing
-      r *= eFactor;
-      g *= eFactor;
-      b *= eFactor;
-
-      r += brightness;
-      g += brightness;
-      b += brightness;
-
-      r = cFactor * (r - 128) + 128;
-      g = cFactor * (g - 128) + 128;
-      b = cFactor * (b - 128) + 128;
-
-      // 6. Enhance saturation for colorful clothing & sky reflections
-      const currentGray = 0.2989 * r + 0.587 * g + 0.114 * b;
-      const satRatio = (saturation + 100) / 100;
-      r = currentGray + (r - currentGray) * satRatio;
-      g = currentGray + (g - currentGray) * satRatio;
-      b = currentGray + (b - currentGray) * satRatio;
-
-      data[i] = Math.max(0, Math.min(255, r));
-      data[i + 1] = Math.max(0, Math.min(255, g));
-      data[i + 2] = Math.max(0, Math.min(255, b));
-      continue;
     } else if (filterId === 'vintage-classic') {
       // Vintage Sepia warm tone curve
       const sepiaR = Math.min(255, currentGray * 1.15 + 14);
@@ -2337,7 +2317,7 @@ export default function App() {
                           Palette Used
                         </span>
                         <span className="text-[9px] font-extrabold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full border border-pink-100 font-mono">
-                          {preset.allowedColors.length} Colors (Full Kit)
+                          {preset.allowedColors.length} Colors (Fixed)
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center justify-center gap-1.5 max-h-[140px] overflow-y-auto p-1 bg-slate-50/70 rounded-xl border border-slate-100">
@@ -2366,7 +2346,7 @@ export default function App() {
                         {[
                           { id: 'pop-art', label: 'Classic (7 Colors)' },
                           { id: 'pop-art-electric', label: 'Vibrant (7 Colors)' },
-                          { id: 'pop-art-warm', label: 'Full Kit (13 Colors)' }
+                          { id: 'pop-art-warm', label: 'Balanced (7 Colors)' }
                         ].map(sub => (
                           <button
                             key={sub.id}
@@ -2498,7 +2478,7 @@ export default function App() {
                         {[
                           { id: 'pop-art', label: 'Classic' },
                           { id: 'pop-art-electric', label: 'Contrast' },
-                          { id: 'pop-art-warm', label: 'Full Canvas' }
+                          { id: 'pop-art-warm', label: 'Balanced' }
                         ].map(sub => (
                           <button
                             key={sub.id}

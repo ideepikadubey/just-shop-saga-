@@ -156,7 +156,6 @@ export function generatePDF(project: Project): void {
   const sectorSize = 40;
   const numSectorsX = Math.ceil(pattern.width / sectorSize);
   const numSectorsY = Math.ceil(pattern.height / sectorSize);
-  const boardNumCols = Math.ceil(pattern.width / 10);
 
   for (let sy = 0; sy < numSectorsY; sy++) {
     for (let sx = 0; sx < numSectorsX; sx++) {

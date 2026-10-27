@@ -364,14 +364,23 @@ export function quantizeImage(
           const huePenalty = (origDa * origDa + origDb * origDb) * 0.16;
 
           // Prevent cool icy white DMC 3756 from creating white paint patch masks on warm skin tones
-          // when alternative skin highlight colors (3864 or 3855) are available in the palette.
+          // when alternative skin tones (977, 3864, or 3855) are available in the palette.
           let skinWhitePenalty = 0;
-          const hasAlternativeSkinHighlight = palette.some(c => c.code === '3864' || c.code === '3855');
+          const hasAlternativeSkinHighlight = palette.some(c => c.code === '3864' || c.code === '3855' || c.code === '977');
+          const isNeutralEyeOrWhite = (origLab[1] < 10 && origLab[2] < 14) || (origR > 185 && origG > 185 && Math.abs(origR - origB) < 25);
           if (hasAlternativeSkinHighlight) {
-            const isNeutralEyeOrWhite = (origLab[1] < 10 && origLab[2] < 14) || (origR > 185 && origG > 185 && Math.abs(origR - origB) < 25);
             if (col.code === '3756' && !isNeutralEyeOrWhite && origR > 110 && origR > origB * 1.18 && origG > origB * 1.02) {
-              skinWhitePenalty = 3000;
+              skinWhitePenalty = 3500;
             }
+          }
+
+          const isTrueRedLip = origR > 140 && (origR - origG) > 50 && (origR - origB) > 50 && origG < origR * 0.70 && origB < origR * 0.70;
+          const isSkinTone = origR > 85 && origR > origG && origG > origB && (origR - origB) > 18;
+
+          // Strictly prevent lavender (209) from bleeding onto warm skin
+          let skinLavenderPenalty = 0;
+          if (col.code === '209' && isSkinTone && !isNeutralEyeOrWhite) {
+            skinLavenderPenalty = 4500;
           }
 
           // Feature preservation bonuses:
@@ -388,8 +397,6 @@ export function quantizeImage(
 
           let redLipBonus = 0;
           let skinRedPenalty = 0;
-          const isTrueRedLip = origR > 140 && (origR - origG) > 50 && (origR - origB) > 50 && origG < origR * 0.70 && origB < origR * 0.70;
-          const isSkinTone = origR > 85 && origR > origG && origG > origB && (origR - origB) > 18;
 
           if (col.code === '304') {
             if (isTrueRedLip) {
@@ -402,18 +409,29 @@ export function quantizeImage(
           let cartoonSkinBonus = 0;
           if (isSkinTone && !isTrueRedLip) {
             if (col.code === '977') {
-              cartoonSkinBonus = -650;
+              cartoonSkinBonus = -700; // Base illuminated golden skin
             } else if (col.code === '3855' || col.code === '3864') {
               cartoonSkinBonus = -500;
+            } else if (col.code === '433' || col.code === '3862') {
+              cartoonSkinBonus = -500; // Facial contour shadows (under glasses, cheek contour, nose)
+            } else if (col.code === '640') {
+              cartoonSkinBonus = -450; // Neck shadow & cool facial shadow
             }
           }
 
           let blueBonus = 0;
-          if ((col.code === '3843' || col.code === '3840') && origB > origR * 1.12 && origB > 75) {
-            blueBonus = -400;
+          if (col.code === '3843' && origB > origR * 1.12 && origB > 75) {
+            blueBonus = -500;
+          } else if (col.code === '3840' && (origB > origR * 1.05 || (origB > 130 && Math.abs(origB - origR) < 30))) {
+            blueBonus = -450; // Forehead specular highlight & sky/glasses reflections
           }
 
-          const dist = dL * dL + da * da + db * db + huePenalty + skinWhitePenalty + skinRedPenalty + darkOutlineBonus + highlightBonus + redLipBonus + cartoonSkinBonus + blueBonus;
+          let lavenderBonus = 0;
+          if (col.code === '209' && !isSkinTone && origR > origG && origB > origG && (origR + origB) > origG * 1.25) {
+            lavenderBonus = -500; // Rich silk-screen lavender clothing
+          }
+
+          const dist = dL * dL + da * da + db * db + huePenalty + skinWhitePenalty + skinLavenderPenalty + skinRedPenalty + darkOutlineBonus + highlightBonus + redLipBonus + cartoonSkinBonus + blueBonus + lavenderBonus;
           if (dist < minDistance) {
             minDistance = dist;
             nearestColor = col;
@@ -450,7 +468,7 @@ export function quantizeImage(
     }
   } else {
     // Standard mapping with CIELAB Delta-E (nearest perceptual color per pixel)
-    const hasAlternativeSkinHighlight = palette.some(c => c.code === '3864' || c.code === '3855');
+    const hasAlternativeSkinHighlight = palette.some(c => c.code === '3864' || c.code === '3855' || c.code === '977');
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
@@ -484,8 +502,7 @@ export function quantizeImage(
             highlightBonus = -500; // Pop out bright teeth and eye catchlights
           }
 
-          // 3. Strict Red Restriction: DMC 304 ONLY for true lips and saturated crimson objects;
-          // Heavy penalty on skin tones to avoid any red bleeding into the face/skin!
+          // 3. Strict Red Restriction: DMC 304 ONLY for true lips and saturated crimson objects
           let redLipBonus = 0;
           let skinRedPenalty = 0;
           const isTrueRedLip = r > 140 && (r - g) > 50 && (r - b) > 50 && g < r * 0.70 && b < r * 0.70;
@@ -501,7 +518,7 @@ export function quantizeImage(
             }
           }
 
-          // 4. Cartoon Skin Cel-Shading Affinity (Golden Ochre #977 & Autumn Gold #3855)
+          // 4. Cartoon Skin Cel-Shading Affinity (Golden Ochre #977, Medium Brown #433, Khaki Gray #640)
           let cartoonSkinBonus = 0;
           if (isSkinTone && !isTrueRedLip) {
             if (col.code === '977') {
@@ -509,7 +526,9 @@ export function quantizeImage(
             } else if (col.code === '3855' || col.code === '3864') {
               cartoonSkinBonus = -550; // Cartoon skin highlight
             } else if (col.code === '433' || col.code === '3862') {
-              cartoonSkinBonus = -400; // Cartoon skin shadow
+              cartoonSkinBonus = -500; // Facial contour shadows (under glasses, cheekbones, nose)
+            } else if (col.code === '640') {
+              cartoonSkinBonus = -450; // Neck shadow & cool facial shadow
             }
           }
 
@@ -517,26 +536,30 @@ export function quantizeImage(
           let blueBonus = 0;
           if (col.code === '3843' && b > r * 1.12 && b > 75) {
             blueBonus = -500; // Pop out vivid electric blue
-          } else if (col.code === '3840' && b > r * 1.08 && b > 140) {
-            blueBonus = -400; // Pop out sky / light blue highlights
+          } else if (col.code === '3840' && (b > r * 1.05 || (b > 130 && Math.abs(b - r) < 30))) {
+            blueBonus = -450; // Forehead specular highlight & sky/glasses reflections
           }
 
           // 6. Lavender Accent (DMC 209)
           let lavenderBonus = 0;
-          if (col.code === '209' && r > g && b > g && (r + b) > g * 1.35) {
-            lavenderBonus = -450; // Pop out artistic lavender accents
+          if (col.code === '209' && !isSkinTone && r > g && b > g && (r + b) > g * 1.25) {
+            lavenderBonus = -500; // Rich silk-screen lavender clothing
           }
 
           // Allow 3756 for highlights while penalizing on warm skin only if alternative skin tones exist
           let skinWhitePenalty = 0;
+          let skinLavenderPenalty = 0;
+          const isNeutralEyeOrWhite = (origLab[1] < 10 && origLab[2] < 14) || (r > 185 && g > 185 && Math.abs(r - b) < 25);
           if (hasAlternativeSkinHighlight) {
-            const isNeutralEyeOrWhite = (origLab[1] < 10 && origLab[2] < 14) || (r > 185 && g > 185 && Math.abs(r - b) < 25);
             if (col.code === '3756' && !isNeutralEyeOrWhite && r > 110 && r > b * 1.18 && g > b * 1.02) {
-              skinWhitePenalty = 3000;
+              skinWhitePenalty = 3500;
             }
           }
+          if (col.code === '209' && isSkinTone && !isNeutralEyeOrWhite) {
+            skinLavenderPenalty = 4500; // Strictly prevent purple on face/skin
+          }
 
-          const dist = dL * dL + da * da + db * db + skinWhitePenalty + skinRedPenalty + darkOutlineBonus + highlightBonus + redLipBonus + cartoonSkinBonus + blueBonus + lavenderBonus;
+          const dist = dL * dL + da * da + db * db + skinWhitePenalty + skinLavenderPenalty + skinRedPenalty + darkOutlineBonus + highlightBonus + redLipBonus + cartoonSkinBonus + blueBonus + lavenderBonus;
           if (dist < minDistance) {
             minDistance = dist;
             nearestColor = col;
@@ -551,7 +574,7 @@ export function quantizeImage(
   // 3. Multi-Pass Spatial Regularization & Despeckle Pass
   // Consolidates isolated 1-2 pixel noise on skin, face, clothing, and background into clean,
   // bold planes of color (like authentic silk-screen and poster art), while strictly protecting
-  // fine black outlines (310), dark pewter (413), catchlights (3756), and crimson lips (304).
+  // fine black outlines (310), dark pewter (413), catchlights (3756), and forehead/lens blue (3840).
   let currentGrid: DMCColor[][] = Array.from({ length: height }, () => new Array(width));
   result.forEach(p => { currentGrid[p.y][p.x] = p.dmc; });
 
@@ -562,8 +585,8 @@ export function quantizeImage(
       for (let x = 1; x < width - 1; x++) {
         const cur = grid[y][x];
 
-        // Always protect fine black outlines (310), dark gray (413), and pinpoint catchlights (3756)
-        if (cur.code === '310' || cur.code === '413' || cur.code === '3756') {
+        // Always protect fine black outlines (310), dark gray (413), pinpoint catchlights (3756), and forehead/lens blue (3840)
+        if (cur.code === '310' || cur.code === '413' || cur.code === '3756' || cur.code === '3840') {
           continue;
         }
 
@@ -617,7 +640,7 @@ export function quantizeImage(
     currentGrid = runSmoothingPass(currentGrid, 1);
     // Pass 3: Polish boundaries on large solid fields (matchingSelfCount <= 2 when majority has >= 5)
     currentGrid = runSmoothingPass(currentGrid, 2);
-  } else if (palette.length > 7) {
+  } else if (palette.length >= 7) {
     // When dithering with rich color palettes, run Pass 1 to prevent isolated single-pixel chromatic grain on skin
     currentGrid = runSmoothingPass(currentGrid, 0);
   }
