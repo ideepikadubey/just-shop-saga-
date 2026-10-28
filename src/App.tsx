@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  Sparkles, Upload, Download, RefreshCw, ZoomIn, ZoomOut, Minus, Plus, Grid, Layers, Eye, EyeOff, ArrowRightLeft, Check, AlertTriangle
+  Sparkles, Upload, Download, RefreshCw, ZoomIn, ZoomOut, Minus, Plus, Grid, Layers, Eye, EyeOff, ArrowRightLeft, Check, AlertTriangle, ShoppingCart
 } from 'lucide-react';
 import { Project, GeneratedPattern, FilterType, DMCColor } from './types';
 import { quantizeImage } from './utils/quantizer';
@@ -2121,6 +2121,15 @@ export default function App() {
                           ORIGINAL A4
                         </div>
                       </div>
+                      <a
+                        href="https://giftskaro.store/collections/diamond"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-[160px] py-2 px-3 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-black text-[11px] uppercase tracking-wider shadow-sm hover:shadow-md transition duration-150 flex items-center justify-center space-x-1.5 cursor-pointer text-center active:scale-95"
+                      >
+                        <ShoppingCart className="h-3.5 w-3.5" />
+                        <span>Buy Now</span>
+                      </a>
                     </div>
 
                     <div className="space-y-2">
@@ -2215,6 +2224,15 @@ export default function App() {
                           VINTAGE A4
                         </div>
                       </div>
+                      <a
+                        href="https://giftskaro.store/collections/diamond"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-[160px] py-2 px-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black text-[11px] uppercase tracking-wider shadow-sm hover:shadow-md transition duration-150 flex items-center justify-center space-x-1.5 cursor-pointer text-center active:scale-95"
+                      >
+                        <ShoppingCart className="h-3.5 w-3.5" />
+                        <span>Buy Now</span>
+                      </a>
                     </div>
 
                     <div className="space-y-2">
@@ -2309,6 +2327,15 @@ export default function App() {
                           POP-ART A4
                         </div>
                       </div>
+                      <a
+                        href="https://giftskaro.store/collections/diamond"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-[160px] py-2 px-3 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-black text-[11px] uppercase tracking-wider shadow-sm hover:shadow-md transition duration-150 flex items-center justify-center space-x-1.5 cursor-pointer text-center active:scale-95"
+                      >
+                        <ShoppingCart className="h-3.5 w-3.5" />
+                        <span>Buy Now</span>
+                      </a>
                     </div>
 
                     <div className="space-y-2">
@@ -2596,7 +2623,7 @@ export default function App() {
           )}
 
           {/* DOWNLOAD & INSTRUCTIONS BUTTON */}
-          <div className="space-y-3.5 border-t border-slate-200 pt-5 mt-auto">
+          <div className="space-y-3 border-t border-slate-200 pt-5 mt-auto">
             <button
               onClick={triggerPDFExport}
               disabled={!pattern}
@@ -2608,6 +2635,15 @@ export default function App() {
               <Download className="h-4.5 w-4.5" />
               <span>Download Instructions (PDF)</span>
             </button>
+            <a
+              href="https://giftskaro.store/collections/diamond"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white font-extrabold text-xs uppercase tracking-wider flex items-center justify-center space-x-2 shadow-lg shadow-pink-500/15 hover:shadow-pink-500/25 transition-all duration-200 cursor-pointer active:scale-[0.98] text-center"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              <span>Buy Now</span>
+            </a>
           </div>
 
         </div>
@@ -2711,6 +2747,25 @@ export default function App() {
                 />
               ) : null}
             </div>
+          </div>
+
+          {/* Action Bar Just Below Portrait View */}
+          <div className="bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 shrink-0 z-10 shadow-xs">
+            <div className="flex items-center space-x-2 min-w-0">
+              <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse shrink-0" />
+              <span className="text-[11px] sm:text-xs font-bold text-slate-700 truncate">
+                Ready to craft this diamond art portrait? Get your custom kit!
+              </span>
+            </div>
+            <a
+              href="https://giftskaro.store/collections/diamond"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="py-2 px-4 sm:px-5 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all duration-150 flex items-center space-x-1.5 cursor-pointer active:scale-95 shrink-0"
+            >
+              <ShoppingCart className="h-3.5 w-3.5" />
+              <span>Buy Now</span>
+            </a>
           </div>
 
           {/* Bottom Filter Previews Bar (Filtered strictly by selected category) */}
@@ -2863,12 +2918,13 @@ export default function App() {
           )}
 
           <a
-            href="https://deargifts.in/"
+            href="https://giftskaro.store/collections/diamond"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center space-x-2 px-4 py-2 rounded-full border border-pink-200 hover:border-pink-500 bg-pink-50/60 hover:bg-pink-100/80 text-pink-600 hover:text-pink-700 font-black text-[10px] sm:text-xs tracking-wider uppercase transition-all duration-200 active:scale-95 shadow-xs cursor-pointer"
           >
-            <span>Visit Shop</span>
+            <ShoppingCart className="h-3.5 w-3.5" />
+            <span>Buy Now</span>
             <span className="text-xs">→</span>
           </a>
         </div>
